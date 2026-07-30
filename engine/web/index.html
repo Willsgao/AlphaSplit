@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AlphaSplit — Alpha is earned. Value should be split.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <script src="/static/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <header class="top">
+    <div class="brand">
+      <span class="logo">AlphaSplit</span>
+      <span class="tag">Alpha is earned. Value should be split.</span>
+    </div>
+    <div class="top-actions">
+      <span id="healthBadge" class="badge">connecting…</span>
+      <button id="btnRunAll" class="btn primary">运行完整 Demo</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero-strip">
+      <h1>多智能体协商的金融知识贡献分配</h1>
+      <p>量化私募场景：因子被多策略复用，Agent 协商分成，贡献值公式终裁。</p>
+    </section>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="negotiate">Agent 对话</button>
+      <button class="tab" data-tab="compare">三组对照</button>
+      <button class="tab" data-tab="evolution">演化曲线</button>
+      <button class="tab" data-tab="formula">公式详情</button>
+    </nav>
+
+    <section id="panel-negotiate" class="panel active">
+      <div class="panel-head">
+        <h2>协商过程</h2>
+        <button id="btnNegotiate" class="btn">开始协商</button>
+      </div>
+      <div id="chatStream" class="chat"></div>
+      <div id="settlement" class="settlement hidden"></div>
+    </section>
+
+    <section id="panel-compare" class="panel">
+      <div class="panel-head">
+        <h2>KPI / 公式 / Agent 三组对照</h2>
+        <button id="btnCompare" class="btn">刷新对照</button>
+      </div>
+      <p class="note" id="compareNote"></p>
+      <div class="chart-wrap">
+        <canvas id="compareChart" height="120"></canvas>
+      </div>
+      <div id="compareTable" class="table-wrap"></div>
+    </section>
+
+    <section id="panel-evolution" class="panel">
+      <div class="panel-head">
+        <h2>100 轮演化</h2>
+        <button id="btnEvolution" class="btn">跑演化</button>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-wrap"><canvas id="giniChart"></canvas></div>
+        <div class="chart-wrap"><canvas id="satChart"></canvas></div>
+        <div class="chart-wrap"><canvas id="reuseChart"></canvas></div>
+      </div>
+    </section>
+
+    <section id="panel-formula" class="panel">
+      <div class="panel-head">
+        <h2>贡献值公式</h2>
+        <button id="btnCalculate" class="btn">重新计算</button>
+      </div>
+      <div class="formula-box">
+        <code>C = Labor × Impact × Scarcity × Reuse</code>
+        <ul>
+          <li><strong>Labor</strong> = hours × (complexity / 5)</li>
+          <li><strong>Impact</strong> = 场景显式 impact_score（张 0.78 / 李·陈 0.55）</li>
+          <li><strong>Scarcity</strong> = 1 / (1 + k · pool_size)</li>
+          <li><strong>Reuse</strong> = 1 + ρ · (reuse_count − 1)</li>
+        </ul>
+      </div>
+      <div id="formulaTable" class="table-wrap"></div>
+    </section>
+  </main>
+
+  <footer>
+    <span>第五届中国研究生金融科技创新大赛 · 自拟赛题 · AI in Finance</span>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

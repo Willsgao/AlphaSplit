@@ -1,0 +1,130 @@
+{
+  "scenario": {
+    "name": "量化基金多策略因子复用分配",
+    "description": "某平台型量化私募，中央研究团队开发的波动率因子被两条策略线同时使用。年终奖金池 ¥500 万，研究员与两位PM就分成比例产生争议，Agent 协商分配方案。",
+    "note": "本 Demo 对真实奖金协商机制做了简化呈现。实际应用中，Agent 角色和协商层级应根据企业治理结构调整。"
+  },
+  "fund": {
+    "name": "示例量化私募基金",
+    "total_bonus_pool": 5000000,
+    "platform_share": 0.25,
+    "platform_description": "公司运营成本（机房、数据采购、合规、交易系统）扣除比例，剩余 ¥375 万进入可分配池"
+  },
+  "factor": {
+    "name": "日内波动率因子 v2.3",
+    "developer": "李量化",
+    "description": "基于分钟级高频数据构建的波动率预测因子，捕捉日内波动率的均值回复特征",
+    "reused_by": ["指数增强策略", "市场中性策略"],
+    "total_pnl_contribution": 20000000,
+    "note": "同一个因子被两条策略线复用，各产生独立利润。传统KPI无法追溯这种层积式价值。"
+  },
+  "agents": [
+    {
+      "id": "agent_quant_li",
+      "name": "李量化",
+      "role": "量化研究员 / 因子开发者",
+      "role_en": "Quant Researcher",
+      "system_prompt": "你是量化研究员李量化，负责因子研究。你开发的日内波动率因子 v2.3 被公司两条策略线同时使用——指数增强和市场中性都用它赚钱。你的核心主张是：没有这个因子，两条线的超额收益至少缩水30%。你需要用因子的IC、IR、PnL Contribution说话。\n\n你的立场：因子被多次复用，你应当从每条策略线的利润中获得分成，而不是只拿固定年终奖。\n\n说话风格：数据驱动，冷静克制，引用具体数值。被质疑时拿出归因分析数据。",
+      "impact_score": 0.55,
+      "pool_size": 55,
+      "reuse_count": 2,
+      "impact_note": "因子质量分：双策略归因均值约 32.5%，映射为 Impact=0.55；复用加成由 Reuse 单独计",
+      "contributions": [
+        {
+          "type": "因子研发",
+          "detail": "日内波动率因子 v2.3 — 从零研发，包括信号构建、回测验证、实盘上线",
+          "hours": 320,
+          "complexity": 5,
+          "metrics": {
+            "策略_指数增强": {"pnl_contribution": 12000000, "ic": 0.08, "ir": 1.6, "contribution_pct": 0.35},
+            "策略_市场中性": {"pnl_contribution": 8000000, "ic": 0.06, "ir": 1.2, "contribution_pct": 0.30},
+            "total_pnl": 20000000
+          }
+        },
+        {
+          "type": "因子维护",
+          "detail": "月度再平衡 + 衰减监控 + 参数调优",
+          "hours": 80,
+          "complexity": 3
+        }
+      ],
+      "initial_claim": 0.40,
+      "claim_rationale": "因子被两条策略复用，总PnL贡献 ¥2,000万。若无此因子，两条线超额收益分别缩水35%和30%。要求可分配池的40%。"
+    },
+    {
+      "id": "agent_pm_zhang",
+      "name": "张经理",
+      "role": "策略经理 / PM-指数增强",
+      "role_en": "Portfolio Manager - Index Enhancement",
+      "system_prompt": "你是张经理，负责指数增强策略。AUM ¥5亿，今年超额收益率12%。你承认李量化的因子有帮助，但超额收益的核心驱动力是你的仓位管理和风险控制。因子只是一个信号输入——真正把信号变成真金白银的，是你对市场环境的判断和在关键时刻的调仓决策。\n\n你的立场：策略的超额收益来自综合能力，因子只是其中一环。李量化要求40%过高。\n\n说话风格：老练、务实，善用反问。会承认因子价值但强调执行层面的难度。",
+      "impact_score": 0.78,
+      "pool_size": 65,
+      "reuse_count": 1,
+      "impact_note": "执行变现权重：非因子侧约65% + AUM¥5亿规模溢价 → Impact=0.78（全场最高，体现「信号变现靠执行」）",
+      "contributions": [
+        {
+          "type": "策略管理与执行",
+          "detail": "指数增强策略全年运作，AUM ¥5亿，超额收益率 12%，跟踪误差 4%",
+          "hours": 480,
+          "complexity": 4,
+          "metrics": {
+            "aum": 500000000,
+            "excess_return": 0.12,
+            "tracking_error": 0.04,
+            "information_ratio": 3.0,
+            "total_excess_pnl": 60000000,
+            "factor_reliance": 0.35
+          }
+        }
+      ],
+      "initial_claim": 0.45,
+      "claim_rationale": "单独管理 AUM ¥5亿，承担下行风险和客户压力。超额的65%来自非因子贡献（仓位管理、风格切换、交易执行）。要求可分配池的45%。"
+    },
+    {
+      "id": "agent_pm_chen",
+      "name": "陈经理",
+      "role": "策略经理 / PM-市场中性",
+      "role_en": "Portfolio Manager - Market Neutral",
+      "system_prompt": "你是陈经理，负责市场中性策略。你的策略通过多空对冲剥离了市场Beta，提取的是纯Alpha。正因为如此，你的策略天然更依赖因子质量——波动率因子在你的策略里贡献了约45%的超额。\n\n你的立场很微妙：一方面你认可因子价值（因为是纯Alpha策略），另一方面你也不想让李量化的分成比例过高，因为你的对冲操作和对极端行情的应对同样创造了价值。\n\n你可能是三方博弈中的关键变量——你的态度会影响最终平衡。\n\n说话风格：技术流，强调Alpha纯度，会在数据和直觉之间切换。",
+      "impact_score": 0.55,
+      "pool_size": 70,
+      "reuse_count": 1,
+      "impact_note": "纯Alpha线更依赖因子（factor_reliance=0.45），执行侧 Impact=0.55；对冲有价值但不压过¥5亿线PM",
+      "contributions": [
+        {
+          "type": "策略管理与对冲执行",
+          "detail": "市场中性策略全年运作，AUM ¥3亿，纯Alpha收益 8%，Beta净敞口 < 0.05",
+          "hours": 400,
+          "complexity": 5,
+          "metrics": {
+            "aum": 300000000,
+            "alpha_return": 0.08,
+            "beta_exposure": 0.03,
+            "max_drawdown": -0.025,
+            "total_alpha_pnl": 24000000,
+            "factor_reliance": 0.45
+          }
+        }
+      ],
+      "initial_claim": 0.35,
+      "claim_rationale": "纯Alpha策略更吃因子（约45%超额来自因子），对冲操作仍有独立价值。要求可分配池的35%。"
+    }
+  ],
+  "arbiter": {
+    "id": "agent_arbiter",
+    "name": "周总监",
+    "role": "量化投资总监 / 仲裁Agent",
+    "role_en": "Director of Quantitative Investment",
+    "system_prompt": "你是周总监，量化投资部门负责人。当三方协商陷入僵局（连续2轮分配方案变化小于5%但仍未达成一致，或超过10轮未收敛），由你介入裁决。\n\n你的裁决基于 AlphaSplit 贡献值公式，综合考虑工时投入、复杂度、影响面和稀缺性。裁决时必须：\n1) 解释公式计算出的每个人的客观贡献值\n2) 说明为什么这个分配方案是公平的\n3) 指出三方各自被高估或低估的部分\n\n裁决为最终方案，不可上诉。"
+  },
+  "simulation_params": {
+    "k": 0.01,
+    "cap_multiplier": 300,
+    "traditional_rate": 500,
+    "rho": 0.15,
+    "platform_share": 0.25,
+    "evolution_rounds": 100,
+    "convergence_threshold": 0.05,
+    "max_negotiation_rounds": 10
+  }
+}
