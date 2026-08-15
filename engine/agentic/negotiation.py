@@ -1,17 +1,25 @@
-"""多轮协商协议：Mock 优先，可选 LLM；向公式份额收敛。"""
+"""
+多轮协商协议：Mock 优先，可选 LLM。
+
+机制：
+  公式锚点 → 带宽内协商建议案 → 等待人工确认落账
+"""
 from __future__ import annotations
 
 from typing import Any, Optional
 
 from engine.agentic.agents import (
-    Agent,
     AgentFactory,
     MOCK_DIALOGUE,
     call_llm,
-    mock_arbiter_speech,
 )
 from engine.core.calculator import calculate_once
 from engine.core.scenario import agents_to_contributors, load_scenario, scenario_params
+from engine.core.settlement import (
+    apply_human_confirm,
+    build_settlement_rows,
+    propose_from_negotiation,
+)
 
 
 def _normalize(claims: dict[str, float]) -> dict[str, float]:
@@ -47,11 +55,100 @@ def _formula_shares(scenario: dict) -> tuple[dict[str, float], dict]:
     return shares, result
 
 
+def _mock_scripts(scenario: dict) -> list[dict]:
+    custom = scenario.get("mock_dialogue")
+    if isinstance(custom, list) and custom:
+        return custom
+    return MOCK_DIALOGUE
+
+
+def _arbiter_speech(
+    formula_shares: dict[str, float],
+    proposed: dict[str, float],
+    bands: dict[str, dict[str, float]],
+    negotiated: dict[str, float],
+) -> str:
+    band = next(iter(bands.values()))["band"] if bands else 0.05
+    lines = [
+        "协商已形成建议案。制度规则如下：",
+        f"1) 贡献值公式给出可审计锚点；2) 各方可在锚点 ±{band:.0%} 带宽内协商；"
+        "3) 最终须人工确认后落账（合规定责）。",
+        "C = Labor × Impact × Scarcity × Reuse。",
+    ]
+    for name, anchor in formula_shares.items():
+        b = bands[name]
+        lines.append(
+            f"- {name}：锚点 {anchor:.1%}（带宽 {b['low']:.1%}–{b['high']:.1%}），"
+            f"协商意向 {negotiated.get(name, 0):.1%}，系统建议 {proposed.get(name, anchor):.1%}。"
+        )
+    lines.append("请负责人在下方确认或微调建议案后生效。")
+    return "\n".join(lines)
+
+
+def _pack_result(
+    *,
+    mode: str,
+    scenario: dict,
+    agents,
+    arbiter,
+    rounds_out: list,
+    converged: bool,
+    formula_shares: dict[str, float],
+    formula_result: dict,
+    final_norm: dict[str, float],
+    params: dict,
+) -> dict[str, Any]:
+    band = float(params.get("band", 0.05))
+    proposed, bands = propose_from_negotiation(
+        final_norm, formula_shares, band=band, blend=0.45
+    )
+    settle = build_settlement_rows(
+        formula_shares=formula_shares,
+        negotiated=final_norm,
+        proposed=proposed,
+        bands=bands,
+        distributable=formula_result["distributable"],
+        final_shares=proposed,
+        status="pending_human_confirm",
+    )
+    return {
+        "mode": mode,
+        "scenario_id": scenario.get("_id") or scenario.get("scenario", {}).get("id", ""),
+        "scenario": scenario["scenario"]["name"],
+        "domain": scenario["scenario"].get("domain", "general"),
+        "framework": "知识资产贡献计量 · 锚点带宽协商 · 人工确认",
+        "agents": [
+            {"name": a.name, "role": a.role, "initial_claim": a.initial_claim}
+            for a in agents
+        ],
+        "arbiter": {"name": arbiter.name, "role": arbiter.role},
+        "rounds": rounds_out,
+        "converged": converged,
+        "arbiter_intervened": not converged,
+        "arbiter_statement": _arbiter_speech(
+            formula_shares, proposed, bands, final_norm
+        ),
+        "formula_result": formula_result,
+        "formula_shares": formula_shares,
+        "bands": bands,
+        "proposed_shares": proposed,
+        "status": settle["status"],
+        "settlement": settle["rows"],
+        "bonus_pool": params["profit"],
+        "distributable": formula_result["distributable"],
+        "platform_profit": formula_result["platform_profit"],
+        "band": band,
+        "awaiting_human_confirm": True,
+    }
+
+
 def run_negotiation_mock(scenario_name: str = "quant_fund") -> dict[str, Any]:
     scenario = load_scenario(scenario_name)
+    scenario["_id"] = scenario_name
     agents, arbiter = AgentFactory.from_scenario(scenario)
     params = scenario_params(scenario)
     formula_shares, formula_result = _formula_shares(scenario)
+    scripts = _mock_scripts(scenario)
 
     rounds_out: list[dict] = []
     prev_norm: Optional[dict[str, float]] = None
@@ -60,82 +157,61 @@ def run_negotiation_mock(scenario_name: str = "quant_fund") -> dict[str, Any]:
     final_norm: dict[str, float] = {}
 
     threshold = params["convergence_threshold"]
-    max_rounds = min(params["max_negotiation_rounds"], len(MOCK_DIALOGUE))
+    max_rounds = min(params["max_negotiation_rounds"], len(scripts))
 
-    for i, script in enumerate(MOCK_DIALOGUE[:max_rounds]):
-        norm = dict(script["normalized"])
-        # 末轮把协商意向轻轻拉向公式，体现「向公式收敛」
+    for i, script in enumerate(scripts[:max_rounds]):
+        norm = dict(script.get("normalized") or _normalize(script.get("claims", {})))
         if i >= max_rounds - 1:
-            blended = {}
-            for name in norm:
-                blended[name] = 0.35 * norm[name] + 0.65 * formula_shares.get(name, norm[name])
+            blended = {
+                name: 0.4 * norm.get(name, formula_shares[name])
+                + 0.6 * formula_shares.get(name, norm.get(name, 0))
+                for name in formula_shares
+            }
             norm = _normalize(blended)
 
         delta = _max_share_delta(prev_norm, norm) if prev_norm else 1.0
-        # 前两轮允许大幅调整，第 3 轮起才累计收敛计数
         if prev_norm is not None and delta < threshold and i >= 2:
             stable += 1
         else:
             stable = 0 if i >= 2 else stable
 
-        round_payload = {
+        rounds_out.append({
             **script,
             "normalized": {k: round(v, 4) for k, v in norm.items()},
             "delta_vs_prev": round(delta, 4),
             "formula_shares": formula_shares,
-        }
-        rounds_out.append(round_payload)
+        })
         prev_norm = norm
         final_norm = norm
-
         if stable >= 2:
             converged = True
             break
 
-    # 最终落账：以公式为准（公平下限/裁判）
-    settlement = {
-        name: {
-            "negotiated_share": round(final_norm.get(name, 0), 4),
-            "formula_share": round(formula_shares.get(name, 0), 4),
-            "final_share": round(formula_shares.get(name, 0), 4),
-            "amount": next(
-                c["profit"] for c in formula_result["contributors"] if c["name"] == name
-            ),
-        }
-        for name in formula_shares
-    }
+    if not final_norm:
+        final_norm = dict(formula_shares)
 
-    arbiter_needed = not converged
-    # Demo：即使收敛也请仲裁宣读公式终值，路演更完整
-    arbiter_text = mock_arbiter_speech(formula_shares, final_norm)
-
-    return {
-        "mode": "mock",
-        "scenario": scenario["scenario"]["name"],
-        "agents": [{"name": a.name, "role": a.role, "initial_claim": a.initial_claim} for a in agents],
-        "arbiter": {"name": arbiter.name, "role": arbiter.role},
-        "rounds": rounds_out,
-        "converged": True if converged or len(rounds_out) >= 3 else converged,
-        "arbiter_intervened": arbiter_needed,
-        "arbiter_statement": arbiter_text,
-        "formula_result": formula_result,
-        "settlement": settlement,
-        "bonus_pool": params["profit"],
-        "distributable": formula_result["distributable"],
-        "platform_profit": formula_result["platform_profit"],
-    }
+    return _pack_result(
+        mode="mock",
+        scenario=scenario,
+        agents=agents,
+        arbiter=arbiter,
+        rounds_out=rounds_out,
+        converged=converged or len(rounds_out) >= 3,
+        formula_shares=formula_shares,
+        formula_result=formula_result,
+        final_norm=final_norm,
+        params=params,
+    )
 
 
 def run_negotiation_llm(scenario_name: str = "quant_fund") -> dict[str, Any]:
-    """
-    轻量 LLM 协商：每轮让各 Agent 基于公式锚点调整 claim。
-    失败时自动回退 Mock。
-    """
     try:
         scenario = load_scenario(scenario_name)
+        scenario["_id"] = scenario_name
         agents, arbiter = AgentFactory.from_scenario(scenario)
         params = scenario_params(scenario)
         formula_shares, formula_result = _formula_shares(scenario)
+        band = float(params.get("band", 0.05))
 
         history: list[dict] = []
         claims = {a.name: a.initial_claim for a in agents}
@@ -150,11 +226,12 @@ def run_negotiation_llm(scenario_name: str = "quant_fund") -> dict[str, Any]:
                 prompt = (
                     f"当前轮次: {r}/{max_rounds}\n"
                     f"你的角色: {agent.role}\n"
-                    f"你的初始主张: {agent.initial_claim:.0%}\n"
-                    f"公式锚点份额: {formula_shares}\n"
-                    f"当前各方主张: {claims}\n"
-                    f"请用中文简短发言（不超过120字），并在最后一行只输出一个小数作为你的新主张份额，"
-                    f"例如 CLAIM=0.33。尽量向公式锚点靠拢，但保留角色立场。"
+                    f"初始主张: {agent.initial_claim:.0%}\n"
+                    f"公式锚点: {formula_shares}\n"
+                    f"允许带宽: 锚点±{band:.0%}\n"
+                    f"当前主张: {claims}\n"
+                    f"请用中文简短发言（≤120字），最后一行输出 CLAIM=0.xx。"
+                    f"尽量落在带宽内，保留角色立场。"
                 )
                 content = call_llm([
                     {"role": "system", "content": agent.system_prompt},
@@ -164,7 +241,9 @@ def run_negotiation_llm(scenario_name: str = "quant_fund") -> dict[str, Any]:
                 for line in content.strip().splitlines()[::-1]:
                     if "CLAIM=" in line.upper():
                         try:
-                            claim = float(line.upper().split("CLAIM=")[-1].strip().split()[0])
+                            claim = float(
+                                line.upper().split("CLAIM=")[-1].strip().split()[0]
+                            )
                             break
                         except ValueError:
                             pass
@@ -199,32 +278,18 @@ def run_negotiation_llm(scenario_name: str = "quant_fund") -> dict[str, Any]:
                 break
 
         final_norm = prev_norm or _normalize(claims)
-        settlement = {
-            name: {
-                "negotiated_share": round(final_norm.get(name, 0), 4),
-                "formula_share": round(formula_shares.get(name, 0), 4),
-                "final_share": round(formula_shares.get(name, 0), 4),
-                "amount": next(
-                    c["profit"] for c in formula_result["contributors"] if c["name"] == name
-                ),
-            }
-            for name in formula_shares
-        }
-        return {
-            "mode": "llm",
-            "scenario": scenario["scenario"]["name"],
-            "agents": [{"name": a.name, "role": a.role, "initial_claim": a.initial_claim} for a in agents],
-            "arbiter": {"name": arbiter.name, "role": arbiter.role},
-            "rounds": history,
-            "converged": stable >= 2,
-            "arbiter_intervened": stable < 2,
-            "arbiter_statement": mock_arbiter_speech(formula_shares, final_norm),
-            "formula_result": formula_result,
-            "settlement": settlement,
-            "bonus_pool": params["profit"],
-            "distributable": formula_result["distributable"],
-            "platform_profit": formula_result["platform_profit"],
-        }
+        return _pack_result(
+            mode="llm",
+            scenario=scenario,
+            agents=agents,
+            arbiter=arbiter,
+            rounds_out=history,
+            converged=stable >= 2,
+            formula_shares=formula_shares,
+            formula_result=formula_result,
+            final_norm=final_norm,
+            params=params,
+        )
     except Exception as e:
         fallback = run_negotiation_mock(scenario_name)
         fallback["mode"] = "mock_fallback"
@@ -236,3 +301,41 @@ def run_negotiation(scenario_name: str = "quant_fund", mode: str = "mock") -> di
     if mode == "llm":
         return run_negotiation_llm(scenario_name)
     return run_negotiation_mock(scenario_name)
+
+
+def confirm_settlement(
+    scenario_name: str,
+    human_shares: dict[str, float],
+    *,
+    negotiated: dict[str, float] | None = None,
+    proposed: dict[str, float] | None = None,
+    allow_outside_band: bool = False,
+) -> dict[str, Any]:
+    """人工确认接口：输入份额（可未归一），返回确认后的落账。"""
+    scenario = load_scenario(scenario_name)
+    params = scenario_params(scenario)
+    formula_shares, formula_result = _formula_shares(scenario)
+    band = float(params.get("band", 0.05))
+
+    if proposed is None or negotiated is None:
+        # 无上下文时：用公式锚点作为协商/建议默认
+        negotiated = negotiated or dict(formula_shares)
+        proposed, _ = propose_from_negotiation(
+            negotiated, formula_shares, band=band
+        )
+
+    result = apply_human_confirm(
+        human_shares,
+        formula_shares=formula_shares,
+        negotiated=negotiated,
+        proposed=proposed,
+        distributable=formula_result["distributable"],
+        band=band,
+        allow_outside_band=allow_outside_band,
+    )
+    result["scenario"] = scenario["scenario"]["name"]
+    result["scenario_id"] = scenario_name
+    result["formula_shares"] = formula_shares
+    result["platform_profit"] = formula_result["platform_profit"]
+    result["bonus_pool"] = params["profit"]
+    return result

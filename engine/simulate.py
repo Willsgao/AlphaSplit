@@ -79,9 +79,14 @@ def main() -> None:
             print(f"  [{u['speaker']}] {u['text'][:80]}{'…' if len(u['text']) > 80 else ''}")
     print("\n仲裁发言:")
     print(neg["arbiter_statement"])
-    print("\n最终落账:")
+    print("\n系统建议案（待人工确认）:")
     for name, s in neg["settlement"].items():
-        print(f"  {name}: {s['final_share']:.1%} → ¥{s['amount']:,.2f}")
+        print(
+            f"  {name}: 建议 {s['proposed_share']:.1%} "
+            f"(锚点 {s['formula_share']:.1%} · 带宽 {s['band_low']:.1%}–{s['band_high']:.1%}) "
+            f"→ ¥{s['amount']:,.2f}"
+        )
+    print(f"状态: {neg.get('status')} · band=±{neg.get('band', 0.05):.0%}")
 
     evo = run_evolution(args.scenario, rounds=args.evolution, seed=42)
     _print_header(f"三组对照演化 ({evo['rounds']} 轮均值)")

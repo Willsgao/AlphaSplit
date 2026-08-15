@@ -2,12 +2,7 @@
 AlphaSplit FastAPI 入口。
 
 启动：
-  cd AlphaSplit
-  pip install -r requirements.txt
   python -m engine.api.main
-
-或：
-  uvicorn engine.api.main:app --reload --host 0.0.0.0 --port 8000
 """
 from __future__ import annotations
 
@@ -19,37 +14,56 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-# 保证以多种启动方式都能 import engine.*
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from engine.agentic.attribution_agent import run_attribution_pipeline
 from engine.agentic.evolution import run_evolution
-from engine.agentic.negotiation import run_negotiation
+from engine.agentic.negotiation import confirm_settlement, run_negotiation
 from engine.api.models import (
+    AttributionRequest,
     CalculateRequest,
+    ConfirmRequest,
     EvolutionRequest,
     NegotiateRequest,
+    RebalanceRequest,
+    SensitivityRequest,
     SimulateRequest,
 )
 from engine.core.calculator import calculate_once, simulate_calls
-from engine.core.scenario import agents_to_contributors, load_scenario, scenario_params
+from engine.core.scenario import (
+    agents_to_contributors,
+    list_scenarios,
+    load_scenario,
+    scenario_params,
+)
+from engine.core.sensitivity import run_rebalance_demo, run_sensitivity
 
 WEB_DIR = Path(__file__).resolve().parents[1] / "web"
 
 app = FastAPI(
     title="AlphaSplit",
-    description="多智能体协商的金融知识工作贡献计量与公平分配",
-    version="0.1.0",
+    description="金融知识资产贡献计量 · 多方协商 · 人工确认",
+    version="0.3.0",
 )
 
-# 运行模式：由启动参数写入
 app.state.mode = "mock"
 
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "mode": app.state.mode, "version": "0.1.0"}
+    return {
+        "status": "ok",
+        "mode": app.state.mode,
+        "version": "0.3.0",
+        "framework": "attribution-plan-negotiate-confirm",
+    }
+
+
+@app.get("/api/scenarios")
+def api_list_scenarios():
+    return {"scenarios": list_scenarios()}
 
 
 @app.get("/api/scenario")
@@ -82,6 +96,7 @@ def api_calculate(body: CalculateRequest):
         traditional_rate=params["traditional_rate"],
         rho=params["rho"],
     )
+    result["band"] = params["band"]
     return result
 
 
@@ -94,7 +109,6 @@ def api_simulate(body: SimulateRequest):
 
     params = scenario_params(scenario)
     contributors = agents_to_contributors(scenario)
-    # 多轮：每轮分「可分配池」的 1/num 近似，演示 cap 溢出
     per = params["distributable"] / max(body.num_calls, 1)
     return simulate_calls(
         contributors,
@@ -111,10 +125,25 @@ def api_simulate(body: SimulateRequest):
 
 @app.post("/api/negotiate")
 def api_negotiate(body: NegotiateRequest):
-    # 请求显式指定优先；否则用进程启动 --mode
     mode = body.mode or app.state.mode or "mock"
     try:
         return run_negotiation(body.scenario, mode=mode)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@app.post("/api/confirm")
+def api_confirm(body: ConfirmRequest):
+    if not body.shares:
+        raise HTTPException(status_code=400, detail="shares 不能为空")
+    try:
+        return confirm_settlement(
+            body.scenario,
+            body.shares,
+            negotiated=body.negotiated,
+            proposed=body.proposed,
+            allow_outside_band=body.allow_outside_band,
+        )
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 
@@ -123,6 +152,48 @@ def api_negotiate(body: NegotiateRequest):
 def api_evolution(body: EvolutionRequest):
     try:
         return run_evolution(body.scenario, rounds=body.rounds, seed=body.seed)
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@app.post("/api/sensitivity")
+def api_sensitivity(body: SensitivityRequest):
+    try:
+        return run_sensitivity(
+            body.scenario,
+            factor_weight=body.factor_weight,
+            impact_overrides=body.impact_overrides,
+            rho=body.rho,
+            sweep=body.sweep,
+            sweep_points=body.sweep_points,
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@app.post("/api/rebalance")
+def api_rebalance(body: RebalanceRequest):
+    if not body.target_shares:
+        raise HTTPException(status_code=400, detail="target_shares 不能为空")
+    try:
+        return run_rebalance_demo(
+            body.scenario,
+            target_shares=body.target_shares,
+            steps=body.steps,
+            start_weight=body.start_weight,
+        )
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+
+
+@app.post("/api/attribution")
+def api_attribution(body: AttributionRequest):
+    try:
+        return run_attribution_pipeline(
+            body.scenario,
+            mode=body.mode,
+            seed=body.seed,
+        )
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
 

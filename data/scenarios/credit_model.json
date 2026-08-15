@@ -1,0 +1,209 @@
+{
+  "scenario": {
+    "name": "银行信用模型跨条线复用分配",
+    "domain": "banking",
+    "description": "总行模型中心开发的零售信用评分模型，被零售贷款与信用卡两条业务线同时调用。年终专项激励池 ¥300 万，模型组与两位业务负责人就贡献分成产生争议。",
+    "note": "用于证明 AlphaSplit 框架可替换场景：同一套「知识资产复用 → 多方协商 → 锚点带宽 → 人工确认」协议，不绑定量化私募。"
+  },
+  "fund": {
+    "name": "示例商业银行",
+    "total_bonus_pool": 3000000,
+    "platform_share": 0.20,
+    "platform_description": "数据平台、合规与模型治理成本扣除 20%，剩余 ¥240 万进入可分配池"
+  },
+  "factor": {
+    "name": "零售信用评分模型 v4.1",
+    "developer": "王模型",
+    "description": "融合征信、行为与关系网络特征的信用评分模型，支撑贷前审批与额度决策",
+    "reused_by": ["零售贷款", "信用卡"],
+    "total_pnl_contribution": 12000000,
+    "note": "同一模型被两条业务线复用，传统KPI难以追溯模型资产的层积价值。"
+  },
+  "agents": [
+    {
+      "id": "agent_model_wang",
+      "name": "王模型",
+      "role": "模型专家 / 信用模型负责人",
+      "role_en": "Credit Model Owner",
+      "system_prompt": "你是银行模型中心的王模型，负责零售信用评分模型。该模型被零售贷款和信用卡两条线同时调用。你主张模型资产应获得持续分成，而不是一次性项目奖。",
+      "impact_score": 0.50,
+      "pool_size": 50,
+      "reuse_count": 2,
+      "impact_note": "模型质量分；跨条线复用由 Reuse 计，Impact 略低于业务落地负责人",
+      "contributions": [
+        {
+          "type": "模型研发",
+          "detail": "信用评分模型 v4.1 特征工程、训练、验证与上线",
+          "hours": 360,
+          "complexity": 5,
+          "metrics": {
+            "业务_零售贷款": {"contribution_pct": 0.28, "ks": 0.42},
+            "业务_信用卡": {"contribution_pct": 0.32, "ks": 0.45},
+            "total_pnl": 12000000
+          }
+        },
+        {
+          "type": "模型监控",
+          "detail": "月度稳定性监控与阈值回退预案",
+          "hours": 60,
+          "complexity": 3
+        }
+      ],
+      "initial_claim": 0.40,
+      "claim_rationale": "模型被两条线复用，要求可分配池 40%。"
+    },
+    {
+      "id": "agent_pm_zhao",
+      "name": "赵经理",
+      "role": "零售贷款业务负责人",
+      "role_en": "Retail Lending Lead",
+      "system_prompt": "你是零售贷款负责人赵经理。你承认模型重要，但放款规模、客群策略与催收协同才是利润落地的关键。AUM/余额规模大于信用卡线。",
+      "impact_score": 0.82,
+      "pool_size": 75,
+      "reuse_count": 1,
+      "impact_note": "业务落地与规模溢价：余额更大、执行权重最高 → Impact=0.82",
+      "contributions": [
+        {
+          "type": "业务落地",
+          "detail": "零售贷款全年运用该模型做审批与额度，余额规模显著",
+          "hours": 450,
+          "complexity": 5,
+          "metrics": {
+            "aum": 8000000000,
+            "model_reliance": 0.28,
+            "npl_change": -0.15
+          }
+        }
+      ],
+      "initial_claim": 0.42,
+      "claim_rationale": "业务规模与不良改善主要来自客群与流程执行，要求 42%。"
+    },
+    {
+      "id": "agent_pm_sun",
+      "name": "孙经理",
+      "role": "信用卡业务负责人",
+      "role_en": "Credit Card Lead",
+      "system_prompt": "你是信用卡负责人孙经理。信用卡更依赖模型区分风险，但额度策略与营销转化同样关键。你比赵经理更认模型价值，也不希望模型组拿走过高比例。",
+      "impact_score": 0.55,
+      "pool_size": 90,
+      "reuse_count": 1,
+      "impact_note": "信用卡更吃模型（model_reliance 更高），执行侧 Impact=0.55",
+      "contributions": [
+        {
+          "type": "业务落地",
+          "detail": "信用卡审批与额度决策全面接入评分模型",
+          "hours": 380,
+          "complexity": 4,
+          "metrics": {
+            "aum": 3500000000,
+            "model_reliance": 0.40,
+            "approval_lift": 0.08
+          }
+        }
+      ],
+      "initial_claim": 0.33,
+      "claim_rationale": "更依赖模型，但仍需业务执行，要求 33%。"
+    }
+  ],
+  "arbiter": {
+    "id": "agent_arbiter_bank",
+    "name": "周总监",
+    "role": "数字化风控总监 / 仲裁",
+    "role_en": "Digital Risk Director",
+    "system_prompt": "你是数字化风控总监。协商陷入僵局时介入，依据贡献值公式锚点与带宽规则给出建议，并提醒必须人工确认后落账。"
+  },
+  "mock_dialogue": [
+    {
+      "round": 1,
+      "phase": "opening",
+      "utterances": [
+        {
+          "speaker": "王模型",
+          "role": "模型专家",
+          "claim": 0.40,
+          "text": "评分模型 v4.1 同时服务零售贷款和信用卡。没有这套模型，两条线的风险定价都会变钝。我主张可分配池 40%。"
+        },
+        {
+          "speaker": "赵经理",
+          "role": "零售贷款",
+          "claim": 0.42,
+          "text": "模型是输入，利润来自客群选择、额度策略和贷后。零售余额远大于信用卡，我要 42%。"
+        },
+        {
+          "speaker": "孙经理",
+          "role": "信用卡",
+          "claim": 0.33,
+          "text": "信用卡更吃模型区分度，我认模型价值；但也要营销与额度运营。我要 33%。"
+        }
+      ],
+      "claims": {"王模型": 0.40, "赵经理": 0.42, "孙经理": 0.33},
+      "normalized": {"王模型": 0.348, "赵经理": 0.365, "孙经理": 0.287},
+      "consensus": 0.25
+    },
+    {
+      "round": 2,
+      "phase": "anchor",
+      "utterances": [
+        {
+          "speaker": "王模型",
+          "role": "模型专家",
+          "claim": 0.34,
+          "text": "可以引入公式锚点。复用加成应进计量，我收到约 34%。"
+        },
+        {
+          "speaker": "赵经理",
+          "role": "零售贷款",
+          "claim": 0.39,
+          "text": "同意锚点带宽。规模与落地执行应拿到最高 Impact，我收到约 39%。"
+        },
+        {
+          "speaker": "孙经理",
+          "role": "信用卡",
+          "claim": 0.28,
+          "text": "我更认模型，执行侧不压过零售线。我收到约 28%，建议进入人工确认。"
+        }
+      ],
+      "claims": {"王模型": 0.34, "赵经理": 0.39, "孙经理": 0.28},
+      "normalized": {"王模型": 0.337, "赵经理": 0.386, "孙经理": 0.277},
+      "consensus": 0.72
+    },
+    {
+      "round": 3,
+      "phase": "convergence",
+      "utterances": [
+        {
+          "speaker": "王模型",
+          "role": "模型专家",
+          "claim": 0.34,
+          "text": "锁定靠近锚点的建议案，等总监确认。"
+        },
+        {
+          "speaker": "赵经理",
+          "role": "零售贷款",
+          "claim": 0.38,
+          "text": "同意。业务规模更大，份额略高于模型组合理。"
+        },
+        {
+          "speaker": "孙经理",
+          "role": "信用卡",
+          "claim": 0.28,
+          "text": "同意收敛，提交人工确认。"
+        }
+      ],
+      "claims": {"王模型": 0.34, "赵经理": 0.38, "孙经理": 0.28},
+      "normalized": {"王模型": 0.340, "赵经理": 0.380, "孙经理": 0.280},
+      "consensus": 0.88
+    }
+  ],
+  "simulation_params": {
+    "k": 0.01,
+    "cap_multiplier": 300,
+    "traditional_rate": 500,
+    "rho": 0.15,
+    "platform_share": 0.20,
+    "evolution_rounds": 100,
+    "convergence_threshold": 0.05,
+    "max_negotiation_rounds": 10,
+    "band": 0.05
+  }
+}

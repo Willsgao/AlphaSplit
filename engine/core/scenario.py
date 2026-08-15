@@ -15,7 +15,27 @@ def load_scenario(name: str = "quant_fund") -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"场景不存在: {path}")
     with path.open(encoding="utf-8") as f:
-        return json.load(f)
+        data = json.load(f)
+    data.setdefault("scenario", {})["id"] = name
+    return data
+
+
+def list_scenarios() -> list[dict[str, str]]:
+    items = []
+    for path in sorted(SCENARIO_DIR.glob("*.json")):
+        try:
+            with path.open(encoding="utf-8") as f:
+                data = json.load(f)
+            sc = data.get("scenario") or {}
+            items.append({
+                "id": path.stem,
+                "name": sc.get("name", path.stem),
+                "domain": sc.get("domain", "general"),
+                "description": sc.get("description", ""),
+            })
+        except (OSError, json.JSONDecodeError):
+            continue
+    return items
 
 
 def _sum_hours(agent: dict) -> float:
@@ -129,5 +149,6 @@ def scenario_params(scenario: dict) -> dict[str, Any]:
         "evolution_rounds": int(p.get("evolution_rounds", 100)),
         "convergence_threshold": float(p.get("convergence_threshold", 0.05)),
         "max_negotiation_rounds": int(p.get("max_negotiation_rounds", 10)),
+        "band": float(p.get("band", 0.05)),
         "distributable": round(bonus * (1 - platform_share), 2),
     }

@@ -18,6 +18,10 @@
       <span class="tag">Alpha is earned. Value should be split.</span>
     </div>
     <div class="top-actions">
+      <label class="scenario-pick">
+        <span>场景</span>
+        <select id="scenarioSelect"></select>
+      </label>
       <span id="healthBadge" class="badge">connecting…</span>
       <button id="btnRunAll" class="btn primary">运行完整 Demo</button>
     </div>
@@ -25,12 +29,14 @@
 
   <main>
     <section class="hero-strip">
-      <h1>多智能体协商的金融知识贡献分配</h1>
-      <p>量化私募场景：因子被多策略复用，Agent 协商分成，贡献值公式终裁。</p>
+      <h1>金融知识资产贡献计量与多方协商</h1>
+      <p id="heroDesc">Agent 规划回测归因（策略/行业/偶然）→ 分配锚点 → 协商与人工确认。</p>
     </section>
 
     <nav class="tabs" role="tablist">
-      <button class="tab active" data-tab="negotiate">Agent 对话</button>
+      <button class="tab active" data-tab="negotiate">协商与确认</button>
+      <button class="tab" data-tab="attribution">Agent归因</button>
+      <button class="tab" data-tab="sensitivity">自动回平衡</button>
       <button class="tab" data-tab="compare">三组对照</button>
       <button class="tab" data-tab="evolution">演化曲线</button>
       <button class="tab" data-tab="formula">公式详情</button>
@@ -38,11 +44,49 @@
 
     <section id="panel-negotiate" class="panel active">
       <div class="panel-head">
-        <h2>协商过程</h2>
+        <h2>Agent 协商 → 人工确认</h2>
         <button id="btnNegotiate" class="btn">开始协商</button>
       </div>
       <div id="chatStream" class="chat"></div>
       <div id="settlement" class="settlement hidden"></div>
+      <div id="humanConfirm" class="human-confirm hidden"></div>
+    </section>
+
+    <section id="panel-attribution" class="panel">
+      <div class="panel-head">
+        <h2>Agent 规划回测归因</h2>
+        <button id="btnAttribution" class="btn primary">运行归因规划</button>
+      </div>
+      <p class="note">Agent 先规划多时段×多品类对照实验，再把超额拆成：策略 Alpha / 行业·政策 / 偶然·宏观，并写回分配 Impact 锚点。</p>
+      <div id="attrPlan" class="attr-box"></div>
+      <div class="charts-grid sens-grid">
+        <div class="chart-wrap"><canvas id="attrWeightChart"></canvas></div>
+        <div class="chart-wrap"><canvas id="attrAllocChart"></canvas></div>
+      </div>
+      <div id="attrInterp" class="attr-interp"></div>
+      <div id="attrTable" class="table-wrap"></div>
+    </section>
+
+    <section id="panel-sensitivity" class="panel">
+      <div class="panel-head">
+        <h2>目标设定 · 自动回平衡</h2>
+        <div class="head-actions">
+          <button id="btnSensitivityReset" class="btn">重置目标</button>
+          <button id="btnRebalance" class="btn primary">开始自动回平衡</button>
+        </div>
+      </div>
+      <p class="note">先拖动各角色「目标份额」（可故意设得很偏），再点自动回平衡：系统会投影到公式锚点±带宽的合理目标，并自动调节因子权重 w，动画收敛到更合理配比。</p>
+      <div id="targetControls" class="sensitivity-controls"></div>
+      <div class="rebalance-status">
+        <span>因子权重 w = <strong id="liveW">—</strong></span>
+        <span>进度 <strong id="liveProgress">0%</strong></span>
+        <span id="liveMsg" class="muted"></span>
+      </div>
+      <div class="charts-grid sens-grid">
+        <div class="chart-wrap"><canvas id="shareBarChart"></canvas></div>
+        <div class="chart-wrap"><canvas id="sweepChart"></canvas></div>
+      </div>
+      <div id="sensTable" class="table-wrap"></div>
     </section>
 
     <section id="panel-compare" class="panel">
@@ -71,16 +115,16 @@
 
     <section id="panel-formula" class="panel">
       <div class="panel-head">
-        <h2>贡献值公式</h2>
+        <h2>贡献值公式（锚点）</h2>
         <button id="btnCalculate" class="btn">重新计算</button>
       </div>
       <div class="formula-box">
         <code>C = Labor × Impact × Scarcity × Reuse</code>
         <ul>
-          <li><strong>Labor</strong> = hours × (complexity / 5)</li>
-          <li><strong>Impact</strong> = 场景显式 impact_score（张 0.78 / 李·陈 0.55）</li>
-          <li><strong>Scarcity</strong> = 1 / (1 + k · pool_size)</li>
-          <li><strong>Reuse</strong> = 1 + ρ · (reuse_count − 1)</li>
+          <li><strong>锚点</strong>：公式份额为可审计中枢</li>
+          <li><strong>带宽</strong>：默认 ±5%，协商建议案夹入带宽</li>
+          <li><strong>人工确认</strong>：合规定责后落账，可微调</li>
+          <li><strong>场景</strong>：换 JSON 即可切换行业样例</li>
         </ul>
       </div>
       <div id="formulaTable" class="table-wrap"></div>
