@@ -1,0 +1,367 @@
+{
+  "request_id": "web_1787472944461",
+  "timestamp": "2026-08-23T16:22:27.653768",
+  "status": "success",
+  "query_summary": "2024-01-01~2024-06-30，所有角色，全行业，monthly调仓",
+  "results": {
+    "overview": {
+      "total_return": 0.21502164589125172,
+      "benchmark_return": 0,
+      "excess_return": 0,
+      "sharpe_ratio": 5.375622946965054,
+      "max_drawdown": -0.0024245015672430537,
+      "relative_contributions": {
+        "行业分析师": 0.5809995558394231,
+        "个股分析师": 0.1313221978988279,
+        "策略分析师": -0.014243993735881358,
+        "量化分析师": 0.16382630645959703,
+        "风控分析师": 0.1380959335380333
+      },
+      "attribution_type": "shapley",
+      "attribution_description": "各角色Shapley贡献（带符号，和为全组合收益）",
+      "total_return_desc": "组合累计收益21.50%",
+      "benchmark_return_desc": "基准(沪深300)收益0.00%",
+      "excess_return_desc": "超额收益0.00%，跑输基准",
+      "max_drawdown_desc": "最大回撤-0.24%",
+      "sharpe_ratio_desc": "夏普比率5.38，风险调整后收益良好"
+    },
+    "role_breakdown": [
+      {
+        "role": "行业分析师",
+        "is_target": false,
+        "weight": 0.5347058913387385,
+        "hr_weight": null,
+        "shapley_raw": 0.12492748075867897,
+        "contribution_raw": 0.12492748075867897,
+        "contribution": 0.12492748075867897,
+        "contribution_relative": 0.5809995558394231,
+        "contribution_pct": 0.5809995558394231,
+        "highlight": "Shapley贡献 +12.49%，权重 58.1%",
+        "performance": {
+          "cumulative_return": 0.21502164589125172,
+          "annual_return": 0.5958851594983992,
+          "annual_volatility": 0.10712900908043223,
+          "sharpe_ratio": 5.375622946965054,
+          "max_drawdown": -0.0024245015672430537,
+          "win_rate": 0.8
+        }
+      },
+      {
+        "role": "个股分析师",
+        "is_target": false,
+        "weight": 0.13654754111940048,
+        "hr_weight": null,
+        "shapley_raw": 0.028237115134262657,
+        "contribution_raw": 0.028237115134262657,
+        "contribution": 0.028237115134262657,
+        "contribution_relative": 0.1313221978988279,
+        "contribution_pct": 0.1313221978988279,
+        "highlight": "Shapley贡献 +2.82%，权重 13.1%",
+        "performance": {
+          "cumulative_return": 0.21502164589125172,
+          "annual_return": 0.5958851594983992,
+          "annual_volatility": 0.10712900908043223,
+          "sharpe_ratio": 5.375622946965054,
+          "max_drawdown": -0.0024245015672430537,
+          "win_rate": 0.8
+        }
+      },
+      {
+        "role": "策略分析师",
+        "is_target": false,
+        "weight": 0.014810765822341618,
+        "hr_weight": null,
+        "shapley_raw": -0.0030627669771538892,
+        "contribution_raw": -0.0030627669771538892,
+        "contribution": -0.0030627669771538892,
+        "contribution_relative": -0.014243993735881358,
+        "contribution_pct": -0.014243993735881358,
+        "highlight": "Shapley贡献 -0.31%（负贡献），权重 -1.4%",
+        "performance": {
+          "cumulative_return": 0.21502164589125172,
+          "annual_return": 0.5958851594983992,
+          "annual_volatility": 0.10712900908043223,
+          "sharpe_ratio": 5.375622946965054,
+          "max_drawdown": -0.0024245015672430537,
+          "win_rate": 0.8
+        }
+      },
+      {
+        "role": "量化分析师",
+        "is_target": false,
+        "weight": 0.1703449963193998,
+        "hr_weight": null,
+        "shapley_raw": 0.03522620205522716,
+        "contribution_raw": 0.03522620205522716,
+        "contribution": 0.03522620205522716,
+        "contribution_relative": 0.16382630645959703,
+        "contribution_pct": 0.16382630645959703,
+        "highlight": "Shapley贡献 +3.52%，权重 16.4%",
+        "performance": {
+          "cumulative_return": 0.21502164589125172,
+          "annual_return": 0.5958851594983992,
+          "annual_volatility": 0.10712900908043223,
+          "sharpe_ratio": 5.375622946965054,
+          "max_drawdown": -0.0024245015672430537,
+          "win_rate": 0.8
+        }
+      },
+      {
+        "role": "风控分析师",
+        "is_target": false,
+        "weight": 0.14359080540011965,
+        "hr_weight": null,
+        "shapley_raw": 0.029693614920236828,
+        "contribution_raw": 0.029693614920236828,
+        "contribution": 0.029693614920236828,
+        "contribution_relative": 0.1380959335380333,
+        "contribution_pct": 0.1380959335380333,
+        "highlight": "Shapley贡献 +2.97%，权重 13.8%",
+        "performance": {
+          "cumulative_return": 0.21502164589125172,
+          "annual_return": 0.5958851594983992,
+          "annual_volatility": 0.10712900908043223,
+          "sharpe_ratio": 5.375622946965054,
+          "max_drawdown": -0.0024245015672430537,
+          "win_rate": 0.8
+        }
+      }
+    ],
+    "role_ranking": [
+      "行业分析师",
+      "量化分析师",
+      "风控分析师",
+      "个股分析师",
+      "策略分析师"
+    ],
+    "role_ranking_desc": "行业分析师 > 量化分析师 > 风控分析师 > 个股分析师 > 策略分析师",
+    "target_role": null,
+    "highlights": [
+      {
+        "type": "positive",
+        "text": "行业分析师贡献最大（+12.49%），是组合收益的主要来源"
+      },
+      {
+        "type": "negative",
+        "text": "策略分析师贡献为负（-0.31%），拖累组合表现，建议重点复盘"
+      },
+      {
+        "type": "warning",
+        "text": "组合跑输基准0.00%，主动管理未跑赢"
+      }
+    ],
+    "recommendation": {
+      "summary": "超额收益0.00%，跑输基准，建议新池40%按贡献分配，行业分析师分配最高（53.5%）",
+      "focus": "重点复盘策略分析师（贡献-0.31%），其负贡献主要拖累组合",
+      "role_weights_impact": "若HR调整某角色权重（新池内调节系数），其分配占比将相应变化"
+    },
+    "filter_detail": {
+      "industry": null,
+      "benchmark": "hs300",
+      "rebalance_freq": "monthly"
+    },
+    "time_series": [
+      {
+        "period": "2024-02",
+        "return": 0.07144524918982831,
+        "benchmark": 0.09352947579579296,
+        "excess": -0.022084226605964652
+      },
+      {
+        "period": "2024-03",
+        "return": -0.0024245015672430537,
+        "benchmark": 0.006086323405611216,
+        "excess": -0.00851082497285427
+      },
+      {
+        "period": "2024-04",
+        "return": 0.02332118253036275,
+        "benchmark": 0.018914594570145882,
+        "excess": 0.004406587960216868
+      },
+      {
+        "period": "2024-05",
+        "return": 0.04057238313504907,
+        "benchmark": -0.006788943482808674,
+        "excess": 0.047361326617857746
+      },
+      {
+        "period": "2024-06",
+        "return": 0.06753961026762134,
+        "benchmark": -0.033034257748776885,
+        "excess": 0.10057386801639823
+      }
+    ]
+  },
+  "demo_id": "roadshow_hs300_2024h1",
+  "demo_label": "路演官方演示 · 2024上半年 HS300 五角色",
+  "query": {
+    "time_range": {
+      "start_date": "2024-01-01",
+      "end_date": "2024-06-30"
+    },
+    "industry": null,
+    "benchmark": "hs300",
+    "rebalance_freq": "monthly",
+    "granularity": "monthly",
+    "target_role": null
+  },
+  "demo_replay": {
+    "stocks": 300,
+    "trading_days": 121,
+    "pipeline_return": 0.21502164589125172,
+    "pipeline_monthly": [
+      {
+        "month": "2024-02",
+        "return": 0.07144524918982831,
+        "cumulative": 0.07144524918982831
+      },
+      {
+        "month": "2024-03",
+        "return": -0.0024245015672430537,
+        "cumulative": 0.06884752850395248
+      },
+      {
+        "month": "2024-04",
+        "return": 0.02332118253036275,
+        "cumulative": 0.09377431681332027
+      },
+      {
+        "month": "2024-05",
+        "return": 0.04057238313504907,
+        "cumulative": 0.1381513474583469
+      },
+      {
+        "month": "2024-06",
+        "return": 0.06753961026762134,
+        "cumulative": 0.21502164589125172
+      }
+    ],
+    "roles": {
+      "行业分析师": {
+        "months": 6,
+        "sample": [
+          "601728",
+          "601916",
+          "601077"
+        ],
+        "sample_labels": [
+          "中国电信（601728）",
+          "浙商银行（601916）",
+          "渝农商行（601077）"
+        ],
+        "done": true
+      },
+      "个股分析师": {
+        "months": 6,
+        "sample": [
+          "600221",
+          "601898",
+          "601088"
+        ],
+        "sample_labels": [
+          "海航控股（600221）",
+          "中煤能源（601898）",
+          "中国神华（601088）"
+        ],
+        "done": true
+      },
+      "策略分析师": {
+        "months": 6,
+        "sample": [
+          "300033",
+          "601857",
+          "302132"
+        ],
+        "sample_labels": [
+          "同花顺（300033）",
+          "中国石油（601857）",
+          "中航成飞（302132）"
+        ],
+        "done": true
+      },
+      "量化分析师": {
+        "months": 6,
+        "sample": [
+          "600010",
+          "600150",
+          "601600"
+        ],
+        "sample_labels": [
+          "包钢股份（600010）",
+          "中国船舶（600150）",
+          "中国铝业（601600）"
+        ],
+        "done": true
+      },
+      "风控分析师": {
+        "months": 6,
+        "sample": [
+          "600372",
+          "300033",
+          "300059"
+        ],
+        "sample_labels": [
+          "中航机载（600372）",
+          "同花顺（300033）",
+          "东方财富（300059）"
+        ],
+        "done": true
+      }
+    },
+    "role_order": [
+      "行业分析师",
+      "个股分析师",
+      "策略分析师",
+      "量化分析师",
+      "风控分析师"
+    ],
+    "shapley_points": [
+      {
+        "index": 1,
+        "subset": [
+          "行业分析师"
+        ],
+        "label": "行业",
+        "fullLabel": "行业分析师",
+        "y": 12.49
+      },
+      {
+        "index": 2,
+        "subset": [
+          "个股分析师"
+        ],
+        "label": "个股",
+        "fullLabel": "个股分析师",
+        "y": 2.82
+      },
+      {
+        "index": 3,
+        "subset": [
+          "策略分析师"
+        ],
+        "label": "策略",
+        "fullLabel": "策略分析师",
+        "y": -0.31
+      },
+      {
+        "index": 4,
+        "subset": [
+          "量化分析师"
+        ],
+        "label": "量化",
+        "fullLabel": "量化分析师",
+        "y": 3.52
+      },
+      {
+        "index": 5,
+        "subset": [
+          "风控分析师"
+        ],
+        "label": "风控",
+        "fullLabel": "风控分析师",
+        "y": 2.97
+      }
+    ]
+  }
+}

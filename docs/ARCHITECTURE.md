@@ -1,49 +1,41 @@
-# AlphaSplit 架构与叙述对齐（v0.4）
+# AlphaSplit 架构摘要（v0.5）
 
-## 叙述主线
+**AlphaSplit：多智能体驱动的投研角色贡献计量平台**
 
-痛点（固定比例考不明贡献）  
-→ 经典归因可自定义维度  
-→ 维度延伸到组织角色  
-→ Shapley + Agent 反事实/控制变量回测  
-→ 贡献系数作考评锚点（双轨试点 + 人工确认）
+## 主线
 
-## 方法分层
+角色—因子映射 → Agent 规划反事实/对照回测 → 贡献系数 → 可视化与人工确认
 
-1. 资产层：Brinson / 多因子 / CT&CS  
-2. 角色层：角色—归因项映射 + Shapley 贡献系数  
-3. 考评层：协商锚点 + 人工确认；增量池可按新权重试点（建议 6:4）
+## 双轨分配（6:4）
 
-## 工程主链路（与代码）
+落地设计（详见 [`双轨分配机制.md`](双轨分配机制.md)）：
 
+```text
+最终份额 = 60% × 机构现行分配 + 40% × 夏普利新池建议
 ```
-先验公式 / 场景参数
-  → Agent 规划回测方案
-  → core/backtest（切片回测与归因估计）
-  → 贡献权重 / Impact 锚点
-  → 协商带宽 + 人工确认
-  → 可视化输出
-```
+
+- **回测层**（`query_engine`）：只算新池 40% 内各角色权重  
+- **确认层**（`engine/web`）：展示旧池 / 新池 / 合成，人工确认后落账  
+- 与立项「协商锚点 + 人工确认」一致，非自动发薪
+
+## 分层
+
+1. 信号层：公开数据与因子库（决策输入的可计算代理）  
+2. 计量层：特征函数 v(S)、控制变量 / LOO，对齐 Shapley  
+3. 智能层：规划—执行—评估—重试；本地 Mock  
+4. 输出层：贡献系数与解释
+
+## 模块（代码）
 
 | 模块 | 职责 |
 |------|------|
-| `core/backtest.py` | 回测切片与归因估计 |
-| `agentic/attribution_agent.py` | 规划、解读、映射权重 |
-| `core/settlement.py` | 锚点带宽 + 人工确认 |
-| `agentic/negotiation.py` | Mock/LLM 协商 |
-| `core/sensitivity.py` | 权重敏感性 / 回平衡演示 |
+| `engine/core/backtest.py` | 合成回测切片与三因素归因（Mock 演示） |
+| `backtest/query_engine.py` | HS300 多角色回测 + Shapley 归因（真实数据） |
+| `engine/integrations/quantskills_backtest.py` | FastAPI 与回测引擎桥接 |
+| `agent_layer/` | **可替换** HS300 Agent（规划 / 解读），见 `agent_layer/README.md` |
+| `engine/integrations/agent_bridge.py` | Agent 层唯一桥接入口 |
+| `engine/agentic/attribution_agent.py` | 附录：三因素合成归因 Mock |
+| `engine/core/settlement.py` | 锚点与确认辅助 |
+| `engine/agentic/negotiation.py` | 协商建议（辅助） |
 
-## API（现状）
-
-| 路由 | 功能 |
-|------|------|
-| `POST /api/attribution` | Agent 规划回测归因 |
-| `POST /api/negotiate` | 协商建议案 |
-| `POST /api/confirm` | 人工确认 |
-| `POST /api/rebalance` | 目标→回平衡轨迹 |
-| `POST /api/sensitivity` | 权重扫描 |
-| `POST /api/evolution` | 对照演化 |
-
-## 边界
-
-合成/套壳数据用于机制验证；贡献系数为估计而非精确因果；落账需人工确认。
+参赛技术文档完整目录见 `技术文档目录.md`。

@@ -1,0 +1,41 @@
+# ============================================================
+# 回测引擎 HTTP 接口服务 - docker-compose
+#
+# 用法:
+#   在项目根目录（FinTech/）下执行:
+#     docker compose -f backtest/docker-compose.yml up -d
+#
+# 说明:
+#   - 数据目录 data/ 挂载进容器，代码与数据同机/同卷
+#   - 结果目录 backtest/results 挂载到宿主机，便于取回中间数据
+#   - 如需数据在另一台机器，可改用网络共享卷（见注释）
+# ============================================================
+services:
+  backtest:
+    build:
+      context: ..
+      dockerfile: backtest/Dockerfile
+    image: backtest-server:latest
+    container_name: backtest-server
+    restart: unless-stopped
+    ports:
+      - "5051:5051"
+    environment:
+      # 数据目录挂载到容器 /app/data，故 FINBACK_BASE_DIR=/app
+      FINBACK_BASE_DIR: "/app"
+      BACKTEST_BIND: "0.0.0.0:5051"
+      BACKTEST_WORKERS: "1"
+      BACKTEST_TIMEOUT: "600"
+    volumes:
+      # 代码（热更新，生产可去掉只留结果目录）
+      - ../backtest:/app/backtest
+      # 数据目录（只读挂载）
+      - ../data:/app/data:ro
+      # 回测中间结果输出到宿主机
+      - ../backtest/results:/app/backtest/results
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:5051/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

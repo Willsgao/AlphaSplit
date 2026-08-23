@@ -1,0 +1,632 @@
+/* AlphaSplit Premium — 路演级视觉层 */
+
+.roadshow-ui {
+  --premium-bg: #f0ece4;
+  --premium-surface: #ffffff;
+  --premium-ink: #1a1814;
+  --premium-muted: #6b6560;
+  --premium-line: rgba(26, 24, 20, 0.08);
+  --premium-accent: #0d6e5c;
+  --premium-accent-soft: rgba(13, 110, 92, 0.08);
+  --premium-gold: #9a7b1a;
+  --premium-radius: 16px;
+  --premium-radius-lg: 22px;
+  --premium-shadow: 0 1px 2px rgba(26, 24, 20, 0.04), 0 16px 48px rgba(26, 24, 20, 0.07);
+  --premium-shadow-sm: 0 2px 12px rgba(26, 24, 20, 0.06);
+  --font-display: "Instrument Serif", Georgia, serif;
+  --font-ui: "Noto Sans SC", "DM Sans", system-ui, sans-serif;
+}
+
+[data-theme="warm"].roadshow-ui,
+[data-theme="roadshow"].roadshow-ui {
+  --bg: var(--premium-bg);
+  --bg2: var(--premium-surface);
+  --ink: var(--premium-ink);
+  --muted: var(--premium-muted);
+  --line: var(--premium-line);
+  --accent: var(--premium-accent);
+  --accent-soft: var(--premium-accent-soft);
+  --shadow-md: var(--premium-shadow-sm);
+}
+
+[data-theme="warm"].roadshow-ui {
+  --bg: #f0ece4;
+  --bg2: #fffcf8;
+  --ink: #1a1814;
+  --muted: #6b6560;
+  --line: rgba(26, 24, 20, 0.09);
+  --accent: #0d6e5c;
+  --accent-soft: rgba(13, 110, 92, 0.09);
+  --accent-border: rgba(13, 110, 92, 0.28);
+  --accent-border-strong: #0d6e5c;
+  --shadow-md: var(--premium-shadow-sm);
+}
+
+.roadshow-ui body,
+.roadshow-ui {
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+.roadshow-ui .bg-grid {
+  background:
+    radial-gradient(ellipse 90% 60% at 50% -20%, rgba(13, 110, 92, 0.06), transparent 70%),
+    var(--bg) !important;
+}
+
+/* —— 顶栏 —— */
+.roadshow-ui .top {
+  padding: 0.85rem 2rem;
+  border-bottom: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.roadshow-ui .brand .logo {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+}
+
+.roadshow-ui .brand .tag {
+  font-style: normal;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.roadshow-ui .top-actions .scenario-pick,
+.roadshow-ui .top-actions .cache-toggle,
+.roadshow-ui .top-actions .btn-theme {
+  display: none;
+}
+
+html.roadshow-ui.dev-mode .top-actions .scenario-pick,
+html.roadshow-ui.dev-mode .top-actions .btn-theme {
+  display: flex;
+}
+
+.roadshow-ui .health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+.roadshow-ui .health-dot.ok { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.roadshow-ui .health-dot.err { background: var(--danger); }
+
+.roadshow-ui #healthBadge.badge-text { display: none; }
+html.roadshow-ui.dev-mode #healthBadge.badge-text { display: inline; }
+
+.roadshow-ui .btn-dev-toggle {
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding: 0.35rem 0.65rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.roadshow-ui .btn-dev-toggle:hover { background: var(--accent-soft); color: var(--ink); }
+
+.roadshow-ui .btn.primary {
+  border-radius: 999px;
+  padding: 0.55rem 1.35rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #0d6e5c 0%, #0a5a4a 100%);
+  border: none;
+  box-shadow: 0 4px 16px rgba(13, 110, 92, 0.28);
+}
+.roadshow-ui .btn.primary:hover {
+  box-shadow: 0 6px 22px rgba(13, 110, 92, 0.34);
+  transform: translateY(-1px);
+}
+
+.roadshow-ui .btn {
+  border-radius: 999px;
+  border-color: var(--line);
+}
+
+.roadshow-ui .btn.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+  font-weight: 500;
+}
+.roadshow-ui .btn.btn-ghost:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: transparent;
+}
+
+/* —— Hero —— */
+.roadshow-ui .hero-premium {
+  margin-bottom: 1.75rem;
+  padding: 0 0.25rem;
+}
+
+.roadshow-ui .hero-eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--premium-gold);
+}
+
+.roadshow-ui .hero-premium h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2rem, 4.5vw, 2.75rem);
+  line-height: 1.15;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.roadshow-ui .hero-lead {
+  margin: 0 0 1.25rem;
+  font-size: 1.05rem;
+  color: var(--muted);
+  max-width: 36rem;
+  line-height: 1.6;
+}
+
+.roadshow-ui .hero-lead .accent { color: var(--accent); font-weight: 600; }
+
+.roadshow-ui .compliance-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: 0.65rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  background: rgba(154, 123, 26, 0.1);
+  color: var(--premium-gold);
+  border: 1px solid rgba(154, 123, 26, 0.22);
+  vertical-align: middle;
+}
+
+.roadshow-ui .hero-strip { display: none; }
+
+/* KPI 条 */
+.roadshow-ui .kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  background: var(--premium-surface);
+  border-radius: var(--premium-radius-lg);
+  box-shadow: var(--premium-shadow);
+  overflow: hidden;
+  border: 1px solid var(--premium-line);
+}
+
+.roadshow-ui .kpi-strip--empty .kpi-value { color: var(--muted); opacity: 0.5; }
+
+.roadshow-ui .kpi-cell {
+  padding: 1.1rem 1.25rem;
+  border-right: 1px solid var(--premium-line);
+}
+.roadshow-ui .kpi-cell:last-child { border-right: none; }
+
+.roadshow-ui .kpi-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+
+.roadshow-ui .kpi-value {
+  display: block;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.roadshow-ui .kpi-value.positive { color: var(--accent); }
+.roadshow-ui .kpi-value.negative { color: var(--danger); }
+
+.roadshow-ui .kpi-sub {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+@media (max-width: 768px) {
+  .roadshow-ui .kpi-strip { grid-template-columns: 1fr 1fr; }
+  .roadshow-ui .kpi-cell:nth-child(2) { border-right: none; }
+  .roadshow-ui .kpi-cell { border-bottom: 1px solid var(--premium-line); }
+  .roadshow-ui .kpi-cell:nth-child(3),
+  .roadshow-ui .kpi-cell:nth-child(4) { border-bottom: none; }
+}
+
+/* —— 步进器（替代双线导航） —— */
+.roadshow-ui .demo-flow,
+.roadshow-ui .tabs-primary { display: none !important; }
+
+.roadshow-ui .journey-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  padding: 0 1rem;
+}
+
+.roadshow-ui .journey-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.5rem;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  color: var(--muted);
+  transition: color 0.25s;
+  position: relative;
+  z-index: 1;
+}
+
+.roadshow-ui .journey-step .step-ring {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--bg2);
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.roadshow-ui .journey-step .step-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.roadshow-ui .journey-step .step-hint {
+  font-size: 0.68rem;
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+.roadshow-ui .journey-step:hover { color: var(--ink); }
+.roadshow-ui .journey-step:hover .step-ring { border-color: var(--accent-border); }
+
+.roadshow-ui .journey-step.active .step-ring {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(13, 110, 92, 0.35);
+}
+
+.roadshow-ui .journey-step.active { color: var(--ink); }
+
+.roadshow-ui .journey-connector {
+  flex: 1;
+  max-width: 80px;
+  height: 2px;
+  background: var(--line);
+  margin: 0 -0.25rem;
+  margin-bottom: 1.6rem;
+}
+
+.roadshow-ui .journey-connector.done { background: var(--accent); opacity: 0.4; }
+
+/* —— 主舞台卡片 —— */
+.roadshow-ui .stage-shell {
+  background: var(--premium-surface);
+  border-radius: var(--premium-radius-lg);
+  box-shadow: var(--premium-shadow);
+  border: 1px solid var(--premium-line);
+  padding: 1.75rem 2rem 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.roadshow-ui .panel-head {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--premium-line);
+}
+
+.roadshow-ui .panel-head h2 {
+  font-family: var(--font-display);
+  font-size: 1.65rem;
+  letter-spacing: -0.01em;
+}
+
+.roadshow-ui #panel-backtest .backtest-mission { display: none; }
+
+.roadshow-ui .backtest-actions .cache-toggle { display: none; }
+html.roadshow-ui.dev-mode .backtest-actions .cache-toggle { display: inline-flex; }
+
+.roadshow-ui #backtestForm {
+  display: none;
+  margin-top: 1rem;
+  border: none;
+  background: var(--bg);
+  border-radius: var(--premium-radius);
+}
+html.roadshow-ui.dev-mode #backtestForm { display: grid; }
+
+.roadshow-ui .tabs-appendix-wrap {
+  border: none;
+  background: transparent;
+  margin-bottom: 0.5rem;
+}
+.roadshow-ui .tabs-appendix-toggle {
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding: 0.35rem 0;
+}
+
+/* —— 叙事区 —— */
+.roadshow-ui .backtest-narrative {
+  border: none;
+  background: var(--bg);
+  border-radius: var(--premium-radius);
+  box-shadow: none;
+  padding: 1.15rem 1.25rem;
+}
+
+.roadshow-ui .narrative-tag {
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.roadshow-ui .narrative-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+}
+
+/* —— 进度条（底部浮动） —— */
+.roadshow-ui .backtest-progress-float {
+  border: 1px solid var(--premium-line);
+  border-bottom: none;
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  box-shadow: 0 -6px 28px rgba(26, 35, 50, 0.08);
+}
+
+.roadshow-ui .backtest-progress-inner {
+  padding: 0.55rem 1.25rem 0.7rem;
+}
+
+.roadshow-ui .backtest-progress-bar {
+  height: 4px;
+  background: var(--line);
+}
+
+.roadshow-ui .backtest-progress-fill {
+  background: linear-gradient(90deg, var(--accent), #14a085);
+}
+
+.roadshow-ui .backtest-steps li {
+  font-size: 0.68rem;
+  border: none;
+  background: var(--bg2);
+  padding: 0.25rem 0.65rem;
+}
+
+.roadshow-ui .backtest-steps li.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* —— 过程看板 —— */
+.roadshow-ui .backtest-live-panel {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.roadshow-ui .backtest-live-panel .live-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  margin-bottom: 0.15rem;
+}
+
+.roadshow-ui .live-zone-label {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.roadshow-ui .live-sub { display: none; }
+
+.roadshow-ui .live-zone {
+  border: none;
+  border-left: 3px solid var(--line);
+  border-radius: 0 var(--premium-radius) var(--premium-radius) 0;
+  background: var(--bg);
+  box-shadow: none;
+  padding: 0.85rem 1rem 0.85rem 1.1rem;
+  margin-bottom: 0.15rem;
+}
+
+.roadshow-ui .live-zone-pending {
+  opacity: 0.45;
+  border-left-style: dashed;
+  background: transparent;
+}
+
+.roadshow-ui .live-zone-active {
+  border-left-color: var(--accent);
+  border-left-width: 4px;
+  background: var(--accent-soft);
+  box-shadow: none;
+}
+
+.roadshow-ui .live-zone-done {
+  border-left-color: var(--accent-border);
+  opacity: 0.85;
+}
+
+.roadshow-ui .live-zone-num {
+  background: var(--accent);
+  color: #fff;
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.7rem;
+}
+
+.roadshow-ui .live-zone-pending .live-zone-num {
+  background: var(--line);
+  color: var(--muted);
+}
+
+/* —— 指标卡 —— */
+.roadshow-ui .metric-card {
+  border: none;
+  background: var(--premium-surface);
+  border-radius: var(--premium-radius);
+  box-shadow: var(--premium-shadow-sm);
+  padding: 1rem 1.15rem;
+}
+
+.roadshow-ui .metric-card .label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.roadshow-ui .metric-card .value {
+  font-size: 1.65rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.roadshow-ui .live-metrics .metric-card .value { font-size: 1.35rem; }
+
+/* —— 角色卡 —— */
+.roadshow-ui .role-factor-card {
+  border: none;
+  background: var(--premium-surface);
+  border-radius: 12px;
+  box-shadow: var(--premium-shadow-sm);
+  padding: 0.7rem 0.8rem;
+}
+
+.roadshow-ui .role-factor-card.active {
+  box-shadow: 0 0 0 2px var(--accent), var(--premium-shadow-sm);
+  background: var(--accent-soft);
+}
+
+/* —— 图表 —— */
+.roadshow-ui .chart-wrap {
+  border: none;
+  background: var(--bg);
+  border-radius: var(--premium-radius);
+  box-shadow: none;
+  padding: 0.75rem 0.5rem;
+}
+
+.roadshow-ui .live-chart-focus {
+  background: transparent;
+}
+
+/* —— 结论 —— */
+.roadshow-ui .backtest-conclusion {
+  border: none;
+  background: linear-gradient(135deg, var(--accent-soft) 0%, rgba(13, 110, 92, 0.02) 100%);
+  border-radius: var(--premium-radius-lg);
+  padding: 1.5rem 1.75rem;
+  border-left: 4px solid var(--accent);
+}
+
+.roadshow-ui .backtest-conclusion h3 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+}
+
+.roadshow-ui .rank-list li {
+  border-bottom-color: var(--premium-line);
+  padding: 0.5rem 0;
+}
+
+/* —— 技术区默认折叠感 —— */
+.roadshow-ui #backtestTechDivider,
+.roadshow-ui #backtestOverview,
+.roadshow-ui .charts-grid.sens-grid,
+.roadshow-ui #backtestSummary,
+.roadshow-ui #backtestTable {
+  opacity: 0.85;
+}
+
+.roadshow-ui .section-divider {
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom-color: var(--premium-line);
+}
+
+.roadshow-ui .backtest-log-details { display: none; }
+html.roadshow-ui.dev-mode .backtest-log-details { display: block; }
+
+.roadshow-ui footer {
+  border-top: none;
+  font-size: 0.72rem;
+  opacity: 0.6;
+  padding: 2rem;
+}
+
+.roadshow-ui main {
+  max-width: 1180px;
+  padding: 0.5rem 1.5rem 3rem;
+}
+
+/* 附录弱化 */
+.roadshow-ui .appendix-note {
+  border: none;
+  background: var(--bg);
+  border-radius: var(--premium-radius);
+  font-size: 0.8rem;
+}
+
+/* —— 6:4 双轨分配 —— */
+.roadshow-ui .dual-pool-panel {
+  border: none;
+  border-left: 4px solid var(--accent);
+  border-radius: var(--premium-radius-lg);
+  box-shadow: var(--premium-shadow, 0 4px 24px rgba(26, 35, 50, 0.06));
+  padding: 1.5rem 1.75rem;
+}
+
+.roadshow-ui .dual-pool-panel h3 {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+}
+
+.roadshow-ui .dual-pool-table th {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.roadshow-ui .negotiate-appendix {
+  opacity: 0.9;
+  background: var(--bg);
+}

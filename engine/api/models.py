@@ -19,8 +19,17 @@ class SimulateRequest(BaseModel):
 
 
 class NegotiateRequest(BaseModel):
-    scenario: str = "quant_fund"
+    scenario: str = "hs300_five_roles"
     mode: str = Field(default="mock", pattern="^(mock|llm)$")
+    backtest: Optional[dict[str, Any]] = Field(
+        default=None,
+        description="HS300 回测结果；传入后五角色协商与夏普利证据对齐",
+    )
+    bonus_pool: float = Field(default=10_000_000, ge=0)
+    baseline_weights: Optional[dict[str, float]] = Field(
+        default=None,
+        description="旧池 60% 现行份额",
+    )
 
 
 class EvolutionRequest(BaseModel):
@@ -30,13 +39,15 @@ class EvolutionRequest(BaseModel):
 
 
 class ConfirmRequest(BaseModel):
-    scenario: str = "quant_fund"
+    scenario: str = "hs300_five_roles"
     shares: dict[str, float] = Field(
-        ..., description="人工确认的份额，可未归一化，如 {'张经理': 0.38, ...}"
+        ..., description="人工确认的份额，可未归一化"
     )
     negotiated: Optional[dict[str, float]] = None
     proposed: Optional[dict[str, float]] = None
     allow_outside_band: bool = False
+    role_model: Optional[str] = Field(default=None, description="five_roles 时使用协商上下文")
+    settlement_context: Optional[dict[str, Any]] = Field(default=None)
 
 
 class SensitivityRequest(BaseModel):
@@ -67,3 +78,60 @@ class AttributionRequest(BaseModel):
     scenario: str = "quant_fund"
     mode: str = Field(default="mock", pattern="^(mock|llm)$")
     seed: int = 42
+
+
+class BacktestTimeRange(BaseModel):
+    start_date: str | None = None
+    end_date: str | None = None
+
+
+class BacktestRunRequest(BaseModel):
+    """QuantSkills 回测引擎请求（嵌套 query 格式）。"""
+
+    request_id: str | None = None
+    timestamp: str | None = None
+    query: dict[str, Any] = Field(
+        default_factory=dict,
+        description="time_range / industry / target_role / role_weights / benchmark 等",
+    )
+    use_cache: bool = Field(
+        default=True,
+        description="相同参数优先读取缓存（路演/重复演示秒开）",
+    )
+    force_refresh: bool = Field(
+        default=False,
+        description="忽略缓存，强制重新计算",
+    )
+    demo_mode: bool = Field(
+        default=False,
+        description="路演演示模式：加载官方预置结果，不触发真实回测",
+    )
+
+
+class AgentPlanRequest(BaseModel):
+    """Agent 规划回测（不执行）。"""
+
+    text: str | None = Field(default=None, description="自然语言需求")
+    preset_id: str | None = Field(default=None, description="内置预设 id")
+    query: dict[str, Any] | None = Field(default=None, description="覆盖/补充 query 字段")
+    mode: str = Field(default="mock", pattern="^(mock|llm)$")
+
+
+class AgentInterpretRequest(BaseModel):
+    """Agent 解读已完成回测。"""
+
+    backtest: dict[str, Any]
+    plan: dict[str, Any] | None = None
+    mode: str = Field(default="mock", pattern="^(mock|llm)$")
+
+
+class AgentPipelineRequest(BaseModel):
+    """Agent 规划 + 执行回测 + 解读（一条龙）。"""
+
+    text: str | None = None
+    preset_id: str | None = None
+    query: dict[str, Any] | None = None
+    mode: str = Field(default="mock", pattern="^(mock|llm)$")
+    demo_mode: bool = False
+    use_cache: bool = True
+    force_refresh: bool = False

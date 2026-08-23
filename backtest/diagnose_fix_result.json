@@ -1,0 +1,19 @@
+{
+  "baseline": {
+    "total_return": 10.396302576691376,
+    "benchmark_return": 0.13159412638823698,
+    "excess_return": 10.26470845030314,
+    "sharpe_ratio": 2.3009088371217854,
+    "max_drawdown": -0.1807981088224051,
+    "relative_contributions": {}
+  },
+  "fixed": {
+    "total_return": 1.2574911728052784,
+    "benchmark_return": 0.03231430922116063,
+    "excess_return": 1.2251768635841178,
+    "sharpe_ratio": 0.5759218437200994,
+    "max_drawdown": -0.3735582615387436,
+    "relative_contributions": {}
+  },
+  "request_id": "diag_20260822_010325"
+}
