@@ -71,7 +71,7 @@ class BacktestPlanner:
         if query.get("target_role"):
             summary_bits.append(f"聚焦{query['target_role']}")
         if query.get("role_weights"):
-            summary_bits.append("含 HR 调节系数")
+            summary_bits.append("含制度调节系数")
 
         return BacktestPlan(
             query=query,

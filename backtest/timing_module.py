@@ -1,7 +1,7 @@
 """
 择时模块（策略分析师）
 ================================================================================
-基于波动率目标管理的仓位调整策略。
+基于趋势确认与波动率目标管理的仓位调整策略。
 
 核心思想（Moreira & Muir, 2017, Journal of Finance）：
     仓位比例 = 目标波动率 / 已实现波动率
@@ -23,7 +23,8 @@ from typing import Optional
 class TimingModule:
     """择时模块（策略分析师）"""
     
-    def __init__(self, target_vol: float = 0.15, lookback: int = 20):
+    def __init__(self, target_vol: float = 0.15, lookback: int = 20,
+                 defensive_position_cap: float = 0.50):
         """
         参数:
             target_vol: 目标年化波动率（默认15%）
@@ -31,6 +32,7 @@ class TimingModule:
         """
         self.target_vol = target_vol
         self.lookback = lookback
+        self.defensive_position_cap = defensive_position_cap
     
     def calculate_position_ratio(self, index_data: pd.DataFrame, 
                                   date: pd.Timestamp) -> float:
@@ -101,6 +103,26 @@ class TimingModule:
         
         # 限制在 0.0 ~ 1.0
         return float(np.clip(ratio, 0.0, 1.0))
+
+    def calculate_regime_aware_position(self, index_returns, year_month: str) -> float:
+        """趋势为正时保持满仓，仅在负趋势且高波动时使用波动率目标降仓。"""
+        ym = pd.Period(year_month)
+        month_start = ym.start_time
+        hist_returns = index_returns[index_returns.index < month_start].dropna()
+
+        if len(hist_returns) < self.lookback:
+            return 1.0
+
+        recent_returns = hist_returns.tail(self.lookback)
+        trailing_return = float((1 + recent_returns).prod() - 1)
+        if trailing_return >= 0:
+            return 1.0
+
+        realized_vol = recent_returns.std() * np.sqrt(252)
+        if not np.isfinite(realized_vol) or realized_vol <= 0:
+            return 1.0
+        volatility_position = float(np.clip(self.target_vol / realized_vol, 0.0, 1.0))
+        return min(float(self.defensive_position_cap), volatility_position)
     
     def get_timing_summary(self, index_data: pd.DataFrame, 
                            months: list) -> dict:

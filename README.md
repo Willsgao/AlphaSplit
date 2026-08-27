@@ -16,7 +16,7 @@
 
 ## 一句话
 
-把组合收益的归因，从资产 / 因子 / 风格**延伸到投研组织角色**；用五角色 Pipeline + **Shapley 联盟归因**量化贡献，经多智能体规划反事实回测产出可解释证据，并在 **6:4 双轨**框架下供人工确认——**贡献计量与决策参考，不是自动发薪系统**。
+把组合超额收益的归因，从资产 / 因子 / 风格**延伸到投研组织角色**；用五角色 Pipeline + **Shapley 联盟归因**量化贡献，经多智能体规划反事实回测产出可解释证据，并在 **6:4 双轨**框架下支持广义价值分配——方案须经人工确认，系统不自动执行。
 
 ---
 
@@ -25,8 +25,8 @@
 | 模块 | 说明 |
 |------|------|
 | **五角色建模** | 行业 / 个股 / 策略 / 量化 / 风控，场景见 `data/scenarios/hs300_five_roles.json` |
-| **Shapley 归因** | 2⁵=32 联盟子集回测，输出角色边际贡献（非仅 LOO） |
-| **6:4 双轨分配** | `最终 = 60%×现行分配 + 40%×夏普利新池`，详见 [`docs/双轨分配机制.md`](docs/双轨分配机制.md) |
+| **Shapley 归因** | `v(S)=联盟收益−同期HS300收益`，2⁵=32 子集输出角色超额边际贡献（非仅 LOO） |
+| **6:4 双轨价值分配** | `最终 = 60%×现行方案 + 40%×夏普利证据池`，可用于预算、研究资源、项目机会、数据/算力额度和激励权益，详见 [`docs/双轨分配机制.md`](docs/双轨分配机制.md) |
 | **Agent 层** | 独立目录 `agent_layer/`，可替换规划 / 解读实现；默认 Mock，可选 DeepSeek |
 | **路演 Demo UI** | 单页全流程：回测 → 归因 → 五角色协商 → 双轨确认 |
 | **HS300 真实数据** | `data/processed/` 离线行情与因子，开箱可跑 |
@@ -91,14 +91,15 @@ Shapley 贡献 + 回测证据 + 五角色协商 + 6:4 双轨确认
 ### 环境要求
 
 - Python 3.10+（推荐 3.11）
-- 依赖见 `requirements.txt`
+- 日常安装使用 `requirements-lock.txt`（已验证锁定版本）
+- `requirements.txt` 保留为开发依赖范围声明
 
 ### Linux / macOS
 
 ```bash
 git clone https://github.com/Willsgao/AlphaSplit.git
 cd AlphaSplit
-pip install -r requirements.txt
+pip install -r requirements-lock.txt
 python -m engine.api.main
 # 浏览器打开 http://127.0.0.1:8000
 ```
@@ -106,6 +107,7 @@ python -m engine.api.main
 ### Windows
 
 ```powershell
+.\install.ps1  # 首次安装或依赖升级时执行一次
 .\start.ps1
 # 或手动：python -m engine.api.main --host 127.0.0.1 --port 8000
 ```
@@ -161,6 +163,20 @@ Agent 替换说明：[`agent_layer/README.md`](agent_layer/README.md)
 
 > 单次完整 Shapley 回测约 1–7 分钟，请设置足够 HTTP 超时。
 
+公开演示（例如 ngrok）建议只开放预计算演示包：
+
+```powershell
+$env:ALPHASPLIT_PUBLIC_DEMO_ONLY = "1"
+python -m engine.api.main --mode mock --host 127.0.0.1 --port 8000
+```
+
+如需远程访问真实回测与历史结果，可设置 Token，并在请求头中传入
+`X-AlphaSplit-Token`。真实回测采用单任务互斥，已有任务运行时返回 HTTP 409。
+
+```powershell
+$env:ALPHASPLIT_API_TOKEN = "请替换为高强度随机值"
+```
+
 ---
 
 ## 仓库结构
@@ -168,8 +184,10 @@ Agent 替换说明：[`agent_layer/README.md`](agent_layer/README.md)
 ```
 AlphaSplit/
 ├── README.md
-├── requirements.txt
-├── start.ps1                 # Windows 一键启动
+├── requirements.txt          # 开发依赖范围声明
+├── requirements-lock.txt     # 已验证依赖锁定版本
+├── install.ps1               # Windows 首次安装
+├── start.ps1                 # Windows 前台启动
 ├── agent_layer/              # 可替换 Agent 实现（独立目录）
 ├── backtest/                 # QuantSkills 回测归因引擎
 ├── data/
@@ -223,10 +241,10 @@ python web_app.py                                # 浏览器 http://127.0.0.1:50
 
 | 是 | 不是 |
 |----|------|
-| 投研角色贡献计量 Demo / 可扩展框架 | 已上线自动薪酬系统 |
+| 投研角色贡献计量 Demo / 可扩展框架 | 可直接替代机构治理的自动决策系统 |
 | Shapley + Agent 规划的可解释证据链 | 精确因果的唯一真相 |
 | 公开因子「套壳」或脱敏数据做机制验证 | 已替代机构内部真实决策日志 |
-| 协商锚点 + 6:4 双轨供人工决策 | 算法自动确定最终薪酬 |
+| 协商锚点 + 6:4 双轨供人工决策 | 算法自动确定最终分配方案 |
 
 ---
 

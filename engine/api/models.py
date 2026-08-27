@@ -1,9 +1,11 @@
 """AlphaSplit FastAPI 数据模型。"""
 from __future__ import annotations
 
-from typing import Any, Optional
+from datetime import date
+import math
+from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class CalculateRequest(BaseModel):
@@ -68,7 +70,7 @@ class RebalanceRequest(BaseModel):
     scenario: str = "quant_fund"
     target_shares: dict[str, float] = Field(
         ...,
-        description="用户设定的分配目标，如 {'张经理': 0.45, '李量化': 0.40, '陈经理': 0.15}",
+        description="用户设定的分配目标，如 {'行业分析师': 0.25, '量化分析师': 0.20}",
     )
     steps: int = Field(default=24, ge=8, le=60)
     start_weight: float = Field(default=0.45, ge=0.15, le=0.85)
@@ -81,18 +83,75 @@ class AttributionRequest(BaseModel):
 
 
 class BacktestTimeRange(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     start_date: str | None = None
     end_date: str | None = None
+
+    @field_validator("start_date", "end_date")
+    @classmethod
+    def validate_iso_date(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        try:
+            date.fromisoformat(value)
+        except ValueError as exc:
+            raise ValueError("日期必须使用 YYYY-MM-DD 格式") from exc
+        return value
+
+    @model_validator(mode="after")
+    def validate_date_order(self):
+        if self.start_date and self.end_date:
+            if date.fromisoformat(self.end_date) < date.fromisoformat(self.start_date):
+                raise ValueError("end_date 不能早于 start_date")
+        return self
+
+
+class BacktestQuery(BaseModel):
+    """真实回测允许的查询字段；未知字段直接拒绝。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    time_range: BacktestTimeRange = Field(default_factory=BacktestTimeRange)
+    target_role: Literal[
+        "行业分析师", "个股分析师", "策略分析师", "量化分析师", "风控分析师"
+    ] | None = None
+    industry: str | None = Field(default=None, max_length=50)
+    role_weights: dict[str, float] | None = None
+    benchmark: Literal["hs300", "csi500", "shanghai"] = "hs300"
+    rebalance_freq: Literal["monthly", "quarterly", "yearly"] = "monthly"
+    granularity: Literal["monthly", "quarterly", "yearly"] = "monthly"
+    attribution_method: Literal["shapley", "relative_benchmark"] = "shapley"
+    factor_config: dict[str, Any] | None = None
+
+    @field_validator("role_weights")
+    @classmethod
+    def validate_role_weights(
+        cls, value: dict[str, float] | None
+    ) -> dict[str, float] | None:
+        if value is None:
+            return None
+        valid_roles = {
+            "行业分析师", "个股分析师", "策略分析师", "量化分析师", "风控分析师"
+        }
+        unknown = sorted(set(value) - valid_roles)
+        if unknown:
+            raise ValueError(f"role_weights 包含无效角色：{unknown}")
+        if any(not math.isfinite(weight) or weight < 0 for weight in value.values()):
+            raise ValueError("role_weights 必须是非负有限数")
+        return value
 
 
 class BacktestRunRequest(BaseModel):
     """QuantSkills 回测引擎请求（嵌套 query 格式）。"""
 
+    model_config = ConfigDict(extra="forbid")
+
     request_id: str | None = None
     timestamp: str | None = None
-    query: dict[str, Any] = Field(
-        default_factory=dict,
-        description="time_range / industry / target_role / role_weights / benchmark 等",
+    query: BacktestQuery = Field(
+        default_factory=BacktestQuery,
+        description="time_range / industry / target_role / role_weights / benchmark / factor_config 等",
     )
     use_cache: bool = Field(
         default=True,
@@ -115,6 +174,55 @@ class AgentPlanRequest(BaseModel):
     preset_id: str | None = Field(default=None, description="内置预设 id")
     query: dict[str, Any] | None = Field(default=None, description="覆盖/补充 query 字段")
     mode: str = Field(default="mock", pattern="^(mock|llm)$")
+
+
+class AgentFactorConfigRequest(BaseModel):
+    """根据自然语言生成因子配置变更预览，不执行回测。"""
+
+    text: str | None = Field(default=None, max_length=2000)
+    current_config: dict[str, Any] | None = None
+    messages: list[dict[str, Any]] = Field(default_factory=list, max_length=10)
+    quick_preferences: dict[str, Any] | None = None
+    mode: str = Field(default="llm", pattern="^(mock|llm)$")
+
+    @field_validator("messages")
+    @classmethod
+    def validate_messages(cls, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        for item in value:
+            if item.get("role") not in {"user", "assistant"}:
+                raise ValueError("messages.role 只能是 user 或 assistant")
+            content = item.get("content")
+            if not isinstance(content, str) or not content.strip() or len(content) > 2000:
+                raise ValueError("messages.content 必须是1到2000字符的文本")
+        return value
+
+    @field_validator("quick_preferences")
+    @classmethod
+    def validate_quick_preferences(
+        cls, value: dict[str, Any] | None
+    ) -> dict[str, Any] | None:
+        if value is None:
+            return None
+        allowed_keys = {"risk_level", "objectives", "focus_roles"}
+        unknown = sorted(set(value) - allowed_keys)
+        if unknown:
+            raise ValueError(f"quick_preferences 包含不支持的字段：{unknown}")
+        risk_level = value.get("risk_level")
+        if risk_level is not None and risk_level not in {"稳健", "均衡", "进取"}:
+            raise ValueError("risk_level 只能是稳健、均衡或进取")
+        allowed_objectives = {"控制回撤", "获取超额", "行业轮动", "趋势交易"}
+        objectives = value.get("objectives", [])
+        if not isinstance(objectives, list) or len(objectives) > 4:
+            raise ValueError("objectives 必须是最多4项的数组")
+        if any(item not in allowed_objectives for item in objectives):
+            raise ValueError("objectives 包含不支持的目标")
+        allowed_roles = {"行业分析师", "个股分析师", "策略分析师", "量化分析师", "风控分析师"}
+        focus_roles = value.get("focus_roles", [])
+        if not isinstance(focus_roles, list) or len(focus_roles) > 5:
+            raise ValueError("focus_roles 必须是最多5项的数组")
+        if any(item not in allowed_roles for item in focus_roles):
+            raise ValueError("focus_roles 包含不支持的角色")
+        return value
 
 
 class AgentInterpretRequest(BaseModel):

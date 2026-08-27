@@ -22,6 +22,7 @@ RESULTS_DIR = BACKTEST_DIR / "results"
 CACHE_DIR = RESULTS_DIR / "_cache"
 DEMO_STATIC = ROOT / "engine" / "web" / "demo" / "backtest_demo.json"
 DEMO_STATIC_URL = "/static/demo/backtest_demo.json"
+BACKTEST_ENGINE_VERSION = "portfolio-v7-20260827"
 
 _ENGINE: Any | None = None
 
@@ -71,6 +72,8 @@ def get_meta() -> dict[str, Any]:
             "ROLE_NOT_FOUND",
             "INVALID_PARAM",
             "NO_DATA",
+            "BENCHMARK_DATA_MISSING",
+            "COALITION_BACKTEST_FAILED",
             "EXECUTION_ERROR",
         ],
         "default_benchmark": "hs300",
@@ -98,13 +101,22 @@ def _read_json(path: Path) -> dict[str, Any] | None:
 def cache_key_from_query(query: dict[str, Any]) -> str:
     """相同回测参数生成稳定缓存键（用于路演重复演示与在线秒开）。"""
     tr = query.get("time_range") or {}
+    factor_config = query.get("factor_config") or {}
+    cache_factor_config = {
+        key: factor_config[key]
+        for key in ("config_id", "version", "roles")
+        if key in factor_config
+    }
     payload = {
+        "engine_version": BACKTEST_ENGINE_VERSION,
         "start": tr.get("start_date") or "",
         "end": tr.get("end_date") or "",
         "industry": (query.get("industry") or "").strip(),
         "benchmark": query.get("benchmark") or "hs300",
         "freq": query.get("rebalance_freq") or query.get("granularity") or "monthly",
         "target_role": (query.get("target_role") or "").strip(),
+        # provenance含确认时间等审计字段，不应导致相同投资参数重复建缓存。
+        "factor_config": cache_factor_config,
     }
     blob = json.dumps(payload, sort_keys=True, ensure_ascii=False)
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
@@ -337,6 +349,7 @@ def _emit_cached_progress(
                 "subset_label": pt.get("label"),
                 "subset_full": pt.get("fullLabel"),
                 "subset_return": (pt.get("y") or 0) / 100,
+                "metric": pt.get("metric", "角色Shapley超额贡献"),
                 "current": pt.get("index"),
                 "total": total_sp,
                 "percent": 72 + int((pt.get("index") or 0) / total_sp * 18),
@@ -439,5 +452,7 @@ def map_error_status(error_code: str) -> int:
         "ROLE_NOT_FOUND": 400,
         "INVALID_PARAM": 400,
         "NO_DATA": 404,
+        "BENCHMARK_DATA_MISSING": 422,
+        "COALITION_BACKTEST_FAILED": 500,
         "EXECUTION_ERROR": 500,
     }.get(error_code, 400)

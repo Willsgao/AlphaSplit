@@ -10,6 +10,7 @@
 作者: 徐远 | 日期: 2026-08-19
 """
 from __future__ import annotations
+import hashlib
 import os, sys, json, warnings
 import numpy as np
 import pandas as pd
@@ -36,8 +37,290 @@ sys.path.insert(0, _BACKTEST_DIR)
 from quant_engine import compute_factor, ROLE_FACTORS, compute_financial_factors, zscore_financial_factors
 from timing_module import TimingModule, apply_timing
 from risk_control_module import RiskControlModule, get_risk_summary
-from industry_analyst import IndustryAnalyst, get_industry_mapping
+from industry_analyst import get_industry_mapping
 from quant_analyst import QuantAnalyst
+from factor_config import factor_direction, normalize_factor_config
+
+
+# 结论按百分比保留两位小数；小于半个最小显示单位时视为持平。
+EXCESS_RETURN_EPSILON = 0.00005
+
+
+class BacktestError(Exception):
+    """带 error_code 的回测错误。error_code 遵循 v4 接口规范。"""
+
+    def __init__(self, error_code, message):
+        super().__init__(message)
+        self.error_code = error_code
+        self.error_message = message
+
+
+def _aligned_benchmark_series(index_returns, portfolio_monthly_returns):
+    """返回与组合持有月份严格对齐的月度基准收益。"""
+    if index_returns is None or len(index_returns) == 0:
+        raise BacktestError("BENCHMARK_DATA_MISSING", "基准收益数据为空")
+
+    month_index = index_returns.index.to_period('M')
+
+    def compound_month(values):
+        valid = values.dropna()
+        if valid.empty:
+            return np.nan
+        return (1 + valid).prod() - 1
+
+    index_monthly = index_returns.groupby(month_index).apply(compound_month)
+    portfolio_months = pd.PeriodIndex(portfolio_monthly_returns.index, freq='M')
+    benchmark_series = index_monthly.reindex(portfolio_months)
+    missing = benchmark_series[benchmark_series.isna()].index
+    if len(missing) > 0:
+        missing_text = "、".join(str(month) for month in missing)
+        raise BacktestError(
+            "BENCHMARK_DATA_MISSING",
+            f"基准数据缺少组合持有月份：{missing_text}",
+        )
+    return benchmark_series
+
+
+def build_benchmark_info(index_returns, portfolio_monthly_returns=None,
+                         portfolio_return=None) -> dict:
+    """计算与组合实际持有月份对齐的基准累计收益和超额收益。"""
+    if portfolio_monthly_returns is not None and len(portfolio_monthly_returns) > 0:
+        benchmark_series = _aligned_benchmark_series(
+            index_returns, portfolio_monthly_returns
+        )
+        if portfolio_return is None:
+            portfolio_return = float((1 + portfolio_monthly_returns).prod() - 1)
+    else:
+        if index_returns is None or len(index_returns) == 0:
+            raise BacktestError("BENCHMARK_DATA_MISSING", "基准收益数据为空")
+        month_index = index_returns.index.to_period('M')
+        benchmark_series = index_returns.groupby(month_index).apply(
+            lambda x: (1 + x.dropna()).prod() - 1 if not x.dropna().empty else np.nan
+        )
+        if benchmark_series.isna().any():
+            missing_text = "、".join(
+                str(month) for month in benchmark_series[benchmark_series.isna()].index
+            )
+            raise BacktestError(
+                "BENCHMARK_DATA_MISSING",
+                f"基准数据缺少有效收益：{missing_text}",
+            )
+
+    benchmark_return = float((1 + benchmark_series).prod() - 1)
+    portfolio_return = float(portfolio_return or 0.0)
+    return {
+        "name": "沪深300",
+        "return": benchmark_return,
+        "excess": portfolio_return - benchmark_return,
+    }
+
+
+def describe_excess_return(excess_return: float) -> str:
+    """生成与两位百分比展示精度一致的跑赢、跑输或持平描述。"""
+    if excess_return > EXCESS_RETURN_EPSILON:
+        return f"超额收益{excess_return*100:.2f}%，跑赢基准"
+    if excess_return < -EXCESS_RETURN_EPSILON:
+        return f"超额收益{excess_return*100:.2f}%，跑输基准"
+    return f"超额收益{excess_return*100:.2f}%，与基准基本持平"
+
+
+def select_neutral_stocks(stocks, limit: int, context: str = "") -> list[str]:
+    """确定性选择中性股票池，结果不依赖输入或字典载入顺序。"""
+    unique = {str(stock) for stock in stocks}
+    ranked = sorted(
+        unique,
+        key=lambda stock: (
+            hashlib.sha256(f"AlphaSplit-neutral-v1|{context}|{stock}".encode("utf-8")).hexdigest(),
+            stock,
+        ),
+    )
+    return ranked[:max(0, int(limit))]
+
+
+def role_selection_limit(role: str, final_top_n: int) -> int:
+    """个股角色提供候选池，行业角色提供足够样本用于行业聚合。"""
+    if role == "个股分析师":
+        # 先做行业筛选、再由量化角色精选，因此这里必须保留足够宽的全市场候选池。
+        return max(final_top_n, final_top_n * 10)
+    if role == "行业分析师":
+        # 行业聚合需要看到全市场排序，避免只看前30名时遗漏中等排名行业。
+        return max(final_top_n, final_top_n * 30)
+    return final_top_n
+
+
+def select_industries_from_ranked_stocks(
+    ranked_stocks,
+    industry_mapping: dict[str, str],
+    limit: int = 3,
+    per_industry_top_k: int = 3,
+) -> list[str]:
+    """把股票排序聚合为行业排序，并限制行业规模带来的数量优势。"""
+    stocks = [str(stock) for stock in ranked_stocks]
+    total = len(stocks)
+    score_lists: dict[str, list[float]] = {}
+    first_rank: dict[str, int] = {}
+    for rank, stock in enumerate(stocks):
+        industry = industry_mapping.get(stock)
+        if not industry:
+            continue
+        score_lists.setdefault(industry, []).append(total - rank)
+        first_rank.setdefault(industry, rank)
+
+    top_k = max(1, int(per_industry_top_k))
+    scores = {
+        industry: sum(sorted(values, reverse=True)[:top_k]) / top_k
+        for industry, values in score_lists.items()
+    }
+
+    ranked_industries = sorted(
+        scores,
+        key=lambda industry: (-scores[industry], first_rank[industry], industry),
+    )
+    return ranked_industries[:max(0, int(limit))]
+
+
+def calculate_portfolio_turnover(
+    previous_weights: dict[str, float],
+    current_weights: dict[str, float],
+) -> float:
+    """计算含现金头寸的单边换手率，初次从现金建仓的换手率为股票仓位。"""
+    stocks = set(previous_weights) | set(current_weights)
+    stock_change = sum(
+        abs(float(current_weights.get(stock, 0.0)) - float(previous_weights.get(stock, 0.0)))
+        for stock in stocks
+    )
+    previous_cash = max(0.0, 1.0 - sum(previous_weights.values()))
+    current_cash = max(0.0, 1.0 - sum(current_weights.values()))
+    return 0.5 * (stock_change + abs(current_cash - previous_cash))
+
+
+def select_without_quant(
+    stocks,
+    limit: int,
+    context: str,
+    stock_analyst_active: bool,
+) -> list[str]:
+    """量化缺席时保留个股排名；两者均缺席时使用中性选择。"""
+    candidates = [str(stock) for stock in stocks]
+    if len(candidates) <= limit:
+        return candidates
+    if stock_analyst_active:
+        return candidates[:limit]
+    return select_neutral_stocks(candidates, limit, context=context)
+
+
+def complete_ranked_candidate_pool(
+    ranked_candidates,
+    eligible_stocks,
+    target_size: int,
+    context: str,
+) -> list[str]:
+    """保留角色排名，并以确定性中性顺序补足目标行业候选池。"""
+    eligible = {str(stock) for stock in eligible_stocks}
+    ranked = [
+        stock for stock in dict.fromkeys(str(stock) for stock in ranked_candidates)
+        if stock in eligible
+    ]
+    if len(ranked) >= target_size:
+        return ranked[:target_size]
+    supplements = select_neutral_stocks(
+        eligible - set(ranked),
+        target_size - len(ranked),
+        context=context,
+    )
+    return ranked + supplements
+
+
+def blend_stock_and_quant_rankings(
+    stock_ranking,
+    quant_ranking,
+    limit: int,
+    stock_weight: float = 0.5,
+) -> list[str]:
+    """用Borda百分位联合个股与量化排序，避免后置角色覆盖前置角色。"""
+    stock_order = list(dict.fromkeys(str(stock) for stock in stock_ranking))
+    quant_order = list(dict.fromkeys(str(stock) for stock in quant_ranking))
+    candidates = [stock for stock in stock_order if stock in set(quant_order)]
+    if not candidates:
+        return stock_order[:max(0, int(limit))]
+
+    quant_rank = {stock: rank for rank, stock in enumerate(quant_order)}
+    stock_rank = {stock: rank for rank, stock in enumerate(stock_order)}
+    stock_denominator = max(1, len(stock_order) - 1)
+    quant_denominator = max(1, len(quant_order) - 1)
+    stock_weight = min(1.0, max(0.0, float(stock_weight)))
+
+    def combined_score(stock: str) -> float:
+        stock_percentile = 1.0 - stock_rank[stock] / stock_denominator
+        quant_percentile = 1.0 - quant_rank[stock] / quant_denominator
+        return stock_weight * stock_percentile + (1.0 - stock_weight) * quant_percentile
+
+    ranked = sorted(
+        candidates,
+        key=lambda stock: (-combined_score(stock), stock_rank[stock], stock),
+    )
+    return ranked[:max(0, int(limit))]
+
+
+def allocate_new_pool_weights(contributions: dict[str, float],
+                              role_weights: Optional[dict[str, float]] = None,
+                              max_weight: float = 0.5) -> dict[str, float]:
+    """
+    按正向 Shapley 贡献计算证据轨建议权重，并用水位法执行单角色上限。
+
+    当正贡献角色不足以在配置上限内承接全部份额时，按最小幅度放宽
+    实际上限，优先保证负贡献角色不获得建议权重。
+    """
+    roles = list(contributions)
+    if not roles:
+        return {}
+    if max_weight <= 0 or max_weight * len(roles) < 1.0 - 1e-12:
+        raise ValueError("max_weight 太小，无法在给定角色数下完成归一化分配")
+
+    multipliers = role_weights or {}
+    scores = {
+        role: max(0.0, float(phi)) * max(0.0, float(multipliers.get(role, 1.0)))
+        for role, phi in contributions.items()
+    }
+    positive_roles = [role for role in roles if scores[role] > 1e-12]
+    if not positive_roles:
+        scores = {role: 1.0 for role in roles}
+        positive_roles = list(roles)
+
+    effective_cap = max(max_weight, 1.0 / len(positive_roles))
+
+    allocated = {role: 0.0 for role in roles}
+    active = set(positive_roles)
+    remaining = 1.0
+
+    while active:
+        active_score = sum(scores[role] for role in active)
+        if active_score <= 1e-12:
+            provisional = {role: remaining / len(active) for role in active}
+        else:
+            provisional = {
+                role: remaining * scores[role] / active_score
+                for role in active
+            }
+
+        over_cap = [
+            role for role, weight in provisional.items()
+            if weight > effective_cap + 1e-12
+        ]
+        if not over_cap:
+            for role, weight in provisional.items():
+                allocated[role] = weight
+            break
+
+        for role in over_cap:
+            allocated[role] = effective_cap
+            remaining -= effective_cap
+            active.remove(role)
+
+    total = sum(allocated.values())
+    if total <= 1e-12:
+        return {role: 1.0 / len(roles) for role in roles}
+    return {role: weight / total for role, weight in allocated.items()}
 
 
 # ============================================================
@@ -96,6 +379,7 @@ class QueryParser:
         if granularity not in QueryParser.VALID_FREQS:
             raise BacktestError("INVALID_PARAM", f"无效粒度: {granularity}，可选: {QueryParser.VALID_FREQS}")
         
+        factor_config = normalize_factor_config(q.get("factor_config"))
         return {
             "start_date": start_date,
             "end_date": end_date,
@@ -105,6 +389,7 @@ class QueryParser:
             "benchmark": benchmark,
             "rebalance_freq": rebalance_freq,
             "granularity": granularity,
+            "factor_config": factor_config,
         }
 
 
@@ -377,6 +662,9 @@ class BacktestExecutor:
     COMMISSION_RATE = 0.001
     SLIPPAGE_RATE = 0.001
     RISK_FREE_RATE = 0.02
+    STOCK_SIGNAL_WEIGHT = 0.50
+    INDUSTRY_COUNT = 4
+    FACTOR_WARMUP_CALENDAR_DAYS = 120
     
     DYNAMIC_ROLES = ["行业分析师", "个股分析师", "策略分析师", "量化分析师", "风控分析师"]
     
@@ -390,16 +678,15 @@ class BacktestExecutor:
         # Sprint 1: 模块实例提升到 executor 级，跨 Shapley 子集共享缓存（性能优化）
         from timing_module import TimingModule
         from risk_control_module import RiskControlModule
-        from industry_analyst import IndustryAnalyst
         from quant_analyst import QuantAnalyst
         self.timing = TimingModule(target_vol=0.15, lookback=20)
         self.risk_control = RiskControlModule({
-            'max_single': 0.05,
-            'max_industry': 0.25,
+            'max_single': 0.10,
+            'max_industry': 0.30,
             'stop_loss_monthly': -0.05,
         })
-        self.industry_analyst = IndustryAnalyst(top_n=3, lookback=20)
         self.quant_analyst = QuantAnalyst(n_strategies=4)
+        self._quant_selection_cache = {}
 
     def _get_valid_industries(self) -> list:
         """获取有效行业列表（来自 stock_industry_mapping.csv），供 industry 校验"""
@@ -432,19 +719,29 @@ class BacktestExecutor:
                     f"{valid_industries}{hint}"
                 )
 
-        # 1. 过滤数据
-        df_daily = self.loader.filter_by_date(params["start_date"], params["end_date"])
-        df_daily = self.loader.filter_by_industry(df_daily, params["industry"])
+        # 1. 过滤交易区间，并额外加载历史窗口用于因子与择时预热。
+        trade_daily = self.loader.filter_by_date(params["start_date"], params["end_date"])
+        trade_daily = self.loader.filter_by_industry(trade_daily, params["industry"])
         
-        if len(df_daily) == 0:
+        if len(trade_daily) == 0:
             df_by_date = self.loader.filter_by_date(params["start_date"], params["end_date"])
             if len(df_by_date) == 0:
                 raise BacktestError("NO_DATA", f"日期范围 {params['start_date']} ~ {params['end_date']} 内无数据，数据范围为 2022-06-06 ~ 2025-12-31")
             else:
                 raise BacktestError("NO_DATA", f"行业「{params['industry']}」在该日期范围内无数据")
         
-        dates = sorted(df_daily["date"].unique())
-        stocks = sorted(df_daily["symbol"].unique())
+        analysis_start = (
+            pd.Timestamp(params["start_date"]) - pd.Timedelta(days=self.FACTOR_WARMUP_CALENDAR_DAYS)
+            if params.get("start_date") else None
+        )
+        df_daily = self.loader.filter_by_date(
+            str(analysis_start.date()) if analysis_start is not None else None,
+            params["end_date"],
+        )
+        df_daily = self.loader.filter_by_industry(df_daily, params["industry"])
+
+        dates = sorted(trade_daily["date"].unique())
+        stocks = sorted(trade_daily["symbol"].unique())
         
         if len(stocks) < self.TOP_N:
             print(f"[警告] 行业「{params.get('industry', '全行业')}」只有 {len(stocks)} 只股票，不足 {self.TOP_N} 只，将使用全部股票")
@@ -468,9 +765,27 @@ class BacktestExecutor:
         role_selections = self._compute_factors_and_select(df_daily, stocks, roles_to_calc, params)
         
         # 4. 获取基准收益（沪深300）
-        index_returns = self.loader.get_index_returns(params["start_date"], params["end_date"])
+        index_returns = self.loader.get_index_returns(
+            str(analysis_start.date()) if analysis_start is not None else None,
+            params["end_date"],
+        )
         
         # 5. Pipeline回测：整合各角色决策
+        factor_roles = (params.get("factor_config") or {}).get("roles", {})
+        industry_params = factor_roles.get("行业分析师", {}).get("module_params", {})
+        strategy_params = factor_roles.get("策略分析师", {}).get("module_params", {})
+        risk_params = factor_roles.get("风控分析师", {}).get("module_params", {})
+        self.INDUSTRY_COUNT = int(
+            industry_params.get("top_industries", self.INDUSTRY_COUNT)
+        )
+        self.timing.target_vol = float(strategy_params.get("target_vol", self.timing.target_vol))
+        self.timing.lookback = int(strategy_params.get("lookback", self.timing.lookback))
+        self.timing.defensive_position_cap = float(
+            strategy_params.get(
+                "defensive_position_cap", self.timing.defensive_position_cap
+            )
+        )
+        self.risk_control.config.update(risk_params)
         self.progress.stage(4, 7, "pipeline", "Pipeline 全角色组合回测…", 48)
         pipeline_results = self._run_pipeline_backtest(
             df_daily, dates, role_selections, index_returns, params
@@ -517,6 +832,9 @@ class BacktestExecutor:
         
         # 9. 组装结果
         results = self._assemble_results(performance, attribution, time_series, params)
+        results["results"]["portfolio_diagnostics"] = pipeline_results.get(
+            "portfolio_diagnostics", []
+        )
         
         return results
     
@@ -570,7 +888,21 @@ class BacktestExecutor:
                 merged = merged.merge(fd, on=["date", "symbol"], how="outer")
             
             factor_cols = [c for c in merged.columns if c not in ("date", "symbol")]
-            merged["composite_score"] = merged[factor_cols].mean(axis=1)
+            role_cfg = (params.get("factor_config") or {}).get("roles", {}).get(role, {})
+            configured_weights = role_cfg.get("factor_weights") or {}
+            # 只覆盖用户指定的角色因子；未指定因子仍使用已归一化的默认值。
+            weights = {col: float(configured_weights.get(col, 0.0)) for col in factor_cols}
+            weight_total = sum(weights.values())
+            directed_factors = merged[factor_cols].mul(
+                {col: factor_direction(col) for col in factor_cols},
+                fill_value=0,
+            )
+            if weight_total <= 0:
+                merged["composite_score"] = directed_factors.mean(axis=1)
+            else:
+                merged["composite_score"] = directed_factors.mul(
+                    {col: weights[col] / weight_total for col in factor_cols}, fill_value=0
+                ).sum(axis=1)
             merged["year_month"] = merged["date"].dt.to_period("M")
             
             # 选股（修复前视偏差 v7.0：当月末选股 → 下一个月持有）
@@ -581,29 +913,42 @@ class BacktestExecutor:
             for idx, ym in enumerate(sorted_months):
                 group = merged[merged["year_month"] == ym]
                 month_end = group[group["date"] == group["date"].max()]
-                # 动态调整选股数量
-                actual_top_n = min(self.TOP_N, len(month_end))
+                # 个股分析师输出较大的候选池，量化分析师再优化到最终 TOP_N。
+                selection_limit = role_selection_limit(role, self.TOP_N)
+                actual_top_n = min(selection_limit, len(month_end))
                 if actual_top_n < 1:
                     continue
                 top = month_end.nlargest(actual_top_n, "composite_score")
                 top_stocks = top["symbol"].tolist()
                 top_scores = dict(zip(top["symbol"], top["composite_score"]))
                 
-                # 记录中间数据（记录"选股时点"ym 的决策）
-                self.recorder.record_selection(role, str(ym), top_stocks, top_scores)
-                
-                for _, row in top.iterrows():
-                    score_dict = {c: row[c] for c in factor_cols if pd.notna(row[c])}
-                    self.recorder.record_factor_score(
-                        role, str(row["date"])[:10], row["symbol"],
-                        score_dict, row["composite_score"]
-                    )
-                
                 # 前视修复：ym 末选出的股票，用于 ym+1 月持有
                 # 最后一个月选出的股票无后续持有月（未来无数据），自然丢弃
                 if idx < len(sorted_months) - 1:
                     hold_month = sorted_months[idx + 1]
-                    selections[str(hold_month)] = top_stocks
+                    start_month = (
+                        pd.Period(params["start_date"], freq="M")
+                        if params.get("start_date") else None
+                    )
+                    end_month = (
+                        pd.Period(params["end_date"], freq="M")
+                        if params.get("end_date") else None
+                    )
+                    if ((start_month is None or hold_month >= start_month)
+                            and (end_month is None or hold_month <= end_month)):
+                        selections[str(hold_month)] = top_stocks
+                        # 仅记录真正进入交易区间的信号，预热月份不进入结果审计。
+                        self.recorder.record_selection(
+                            role, str(hold_month), top_stocks, top_scores
+                        )
+                        for _, row in top.iterrows():
+                            score_dict = {
+                                c: row[c] for c in factor_cols if pd.notna(row[c])
+                            }
+                            self.recorder.record_factor_score(
+                                role, str(row["date"])[:10], row["symbol"],
+                                score_dict, row["composite_score"]
+                            )
             
             role_selections[role] = selections
             print(f"  [{role}] {len(selections)} 个月选股完成（月末选股，次月持有）")
@@ -735,7 +1080,6 @@ class BacktestExecutor:
         # 使用 executor 级共享实例（跨 Shapley 子集复用缓存）
         timing = self.timing
         risk_control = self.risk_control
-        industry_analyst = self.industry_analyst
         quant_analyst = self.quant_analyst
         
         # 获取行业映射
@@ -758,9 +1102,12 @@ class BacktestExecutor:
             raise ValueError("没有可用的选股结果")
         
         selections = role_selections[stock_role]
+        industry_rankings = role_selections.get("行业分析师", {})
         
         monthly_returns = []
         prev_month_ret = 0.0
+        previous_weights = {}
+        portfolio_diagnostics = []
         
         # 角色参与标记（Sprint 1：缺席即跳过）
         industry_active = "行业分析师" in active_roles
@@ -779,11 +1126,15 @@ class BacktestExecutor:
                 # 用户指定了行业，直接使用（不依赖行业分析师）
                 selected_industries = [user_industry]
             elif industry_active:
-                # 行业分析师选择行业（多因子模型）
-                selected_industries = industry_analyst.select_industries(
-                    df_daily, industry_mapping, self.loader.df_index, month_start,
-                    verbose=not is_shapley_run
+                # 将行业角色八因子的股票排序聚合到行业层，确保 Agent 调整的
+                # factor_config 真正进入最终组合，而不是旁路到另一套固定模型。
+                selected_industries = select_industries_from_ranked_stocks(
+                    industry_rankings.get(ym_str, []),
+                    industry_mapping,
+                    limit=self.INDUSTRY_COUNT,
                 )
+                if not selected_industries:
+                    selected_industries = None
             else:
                 # 行业分析师缺席：不做行业选择（全池）
                 selected_industries = None
@@ -806,36 +1157,90 @@ class BacktestExecutor:
                 # 只保留选中行业的股票（行业缺席时不过滤）
                 if stocks_in_industry is not None:
                     stocks_in = [s for s in stocks_in if s in stocks_in_industry]
+                    stocks_in = complete_ranked_candidate_pool(
+                        stocks_in,
+                        stocks_in_industry,
+                        min(
+                            role_selection_limit("个股分析师", self.TOP_N),
+                            len(stocks_in_industry),
+                        ),
+                        context=f"industry_supplement|{ym_str}",
+                    )
             else:
-                # 个股分析师缺席：不精选，用选中行业内全部股票（行业缺席则全池）
+                # 个股分析师缺席：把完整行业池交给后续量化步骤，不引入列表顺序信号。
                 if stocks_in_industry is not None:
-                    stocks_in = stocks_in_industry[:self.TOP_N * 2]
+                    stocks_in = [str(stock) for stock in stocks_in_industry]
                 else:
-                    # 全池中性选择：取所有股票（等权，后续截断）
-                    stocks_in = list(industry_mapping.keys())
+                    stocks_in = [str(stock) for stock in industry_mapping.keys()]
             
             if not stocks_in:
-                # 如果没有股票，使用行业内的所有股票（或全池）
-                if stocks_in_industry is not None:
-                    stocks_in = stocks_in_industry[:self.TOP_N]
-                else:
-                    stocks_in = list(industry_mapping.keys())[:self.TOP_N]
+                # 上游候选为空时使用可复现的中性样本，避免依赖原始载入顺序。
+                neutral_pool = (
+                    stocks_in_industry
+                    if stocks_in_industry is not None
+                    else industry_mapping.keys()
+                )
+                stocks_in = select_neutral_stocks(
+                    neutral_pool, self.TOP_N, context=f"fallback|{ym_str}"
+                )
             
             # ========== 步骤3：量化分析师优化 ==========
-            # 使用多策略平均优化选股（量化分析师缺席时跳过）
+            # 使用量化角色自身因子优化候选池（量化分析师缺席时跳过）。
             if quant_active and len(stocks_in) > self.TOP_N:
                 # 获取月初之前的数据用于优化
                 hist_data = df_daily[df_daily["date"] < month_start]
                 if len(hist_data) > 0:
-                    optimized_stocks, _ = quant_analyst.optimize_selection(
-                        hist_data, stocks_in, stock_role, self.TOP_N
+                    factor_weights = (
+                        (params.get("factor_config") or {})
+                        .get("roles", {})
+                        .get("量化分析师", {})
+                        .get("factor_weights")
                     )
+                    cache = getattr(self, "_quant_selection_cache", None)
+                    if cache is None:
+                        cache = self._quant_selection_cache = {}
+                    cache_key = (
+                        ym_str,
+                        tuple(stocks_in),
+                        json.dumps(factor_weights or {}, sort_keys=True, ensure_ascii=False),
+                        self.STOCK_SIGNAL_WEIGHT,
+                    )
+                    cached_selection = cache.get(cache_key)
+                    if cached_selection is not None:
+                        optimized_stocks = list(cached_selection)
+                    else:
+                        try:
+                            quant_ranked_stocks, _ = quant_analyst.optimize_selection(
+                                hist_data,
+                                stocks_in,
+                                "量化分析师",
+                                len(stocks_in),
+                                factor_weights=factor_weights,
+                            )
+                        except TypeError as exc:
+                            # 保持旧版替身/扩展实现兼容；真实实现支持该参数。
+                            if "factor_weights" not in str(exc):
+                                raise
+                            quant_ranked_stocks, _ = quant_analyst.optimize_selection(
+                                hist_data, stocks_in, "量化分析师", len(stocks_in)
+                            )
+                        optimized_stocks = blend_stock_and_quant_rankings(
+                            stocks_in,
+                            quant_ranked_stocks,
+                            self.TOP_N,
+                            stock_weight=self.STOCK_SIGNAL_WEIGHT,
+                        )
+                        cache[cache_key] = tuple(optimized_stocks)
                     if optimized_stocks:
                         stocks_in = optimized_stocks
             elif not quant_active:
-                # 量化分析师缺席：截断到 TOP_N（等权持有，不做多策略优化）
-                if len(stocks_in) > self.TOP_N:
-                    stocks_in = stocks_in[:self.TOP_N]
+                # 个股在场时采用其排序前 TOP_N；两者均缺席才做中性抽样。
+                stocks_in = select_without_quant(
+                    stocks_in,
+                    self.TOP_N,
+                    context=f"quant_absent|{ym_str}",
+                    stock_analyst_active=stock_active,
+                )
             
             # 计算初始权重（等权）
             n_stocks = len(stocks_in)
@@ -843,7 +1248,9 @@ class BacktestExecutor:
             
             # ========== 步骤4：策略分析师择时 ==========
             if strategy_active:
-                position_ratio = timing.calculate_monthly_position(index_returns, ym_str)
+                position_ratio = timing.calculate_regime_aware_position(
+                    index_returns, ym_str
+                )
                 weights = apply_timing(weights, position_ratio)
             else:
                 # 策略分析师缺席：满仓
@@ -858,10 +1265,12 @@ class BacktestExecutor:
                 )
             # 风控分析师缺席：无约束，直接使用权重
             
+            turnover = calculate_portfolio_turnover(previous_weights, weights)
+
             # 记录调仓事件
             self.recorder.record_rebalance(
                 "组合", str(ym.start_time)[:10], "rebalance",
-                [], stocks_in, len(stocks_in)
+                list(previous_weights), stocks_in, turnover
             )
             
             # 获取月度数据
@@ -893,8 +1302,8 @@ class BacktestExecutor:
             
             daily_rets = pd.Series(daily_rets)
             
-            # 扣除调仓成本
-            cost = (self.COMMISSION_RATE + self.SLIPPAGE_RATE) * 2
+            # 按实际单边换手扣费；完整换仓时换手率为100%，初次建仓同理。
+            cost = (self.COMMISSION_RATE + self.SLIPPAGE_RATE) * turnover
             if len(daily_rets) > 0:
                 daily_rets.iloc[0] -= cost
             
@@ -905,7 +1314,17 @@ class BacktestExecutor:
             # 月收益
             month_ret = (1 + daily_rets).prod() - 1
             monthly_returns.append({"month": ym, "return": month_ret})
+            portfolio_diagnostics.append({
+                "month": ym_str,
+                "selected_industries": selected_industries or [],
+                "stock_count": len(stocks_in),
+                "gross_exposure": float(sum(weights.values())),
+                "position_ratio": float(position_ratio),
+                "turnover": float(turnover),
+                "transaction_cost": float(cost),
+            })
             prev_month_ret = month_ret
+            previous_weights = weights.copy()
         
         # 构建收益序列
         ret_df = pd.DataFrame(monthly_returns).set_index("month")
@@ -918,6 +1337,7 @@ class BacktestExecutor:
         return {
             "monthly_returns": monthly_returns_series,
             "total_return": total_ret,
+            "portfolio_diagnostics": portfolio_diagnostics,
         }
     
     def _compute_relative_benchmark_attribution(self, df_daily, dates, role_selections, 
@@ -1206,7 +1626,7 @@ class BacktestExecutor:
         
         # 添加相对贡献汇总
         attribution["_relative_summary"] = {
-            "description": "各角色相对贡献比例（用于奖金分配）",
+            "description": "各角色相对贡献比例（用于广义价值分配决策）",
             "contributions": relative_contributions,
             "total": sum(relative_contributions.values()),
         }
@@ -1222,12 +1642,13 @@ class BacktestExecutor:
     def _compute_shapley_attribution(self, df_daily, dates, role_selections, index_returns, params,
                                      full_results=None):
         """
-        Shapley 归因：遍历 2^n 个角色子集，对每个子集做真实 Pipeline 回测得到 v(S)，
-        再按 Shapley 公式计算每个角色的边际贡献（v7.0 大纲 §3.1/§3.3）。
+        Shapley 归因：遍历角色子集，以各联盟相对同期 HS300 的超额收益作为 v(S)，
+        再按 Shapley 公式计算每个角色对超额收益的边际贡献。
 
         正确性：
           - v(S) 来自"对子集 S 的真实回测"（调用 _run_pipeline_backtest），而非均值近似
-          - 公理化"有效性"：Σφᵢ == v(N)（贡献之和等于全组合收益），误差 < 1e-6
+          - 空联盟代表仅持有基准，故 v(∅)=0
+          - 公理化"有效性"：Σφᵢ == v(N)（贡献之和等于全组合超额收益），误差 < 1e-6
           - 取消"强制正贡献"，贡献为负则显示为负（考核意义所在）
 
         返回:
@@ -1242,22 +1663,45 @@ class BacktestExecutor:
         print("\n[Backtest] Shapley归因（遍历 2^%d=%d 个子集真实回测）..." % (n, 2 ** n))
 
         # ---- 1. 计算所有子集的 v(S) ----
-        # v_cache[mask] = 该角色子集的 Pipeline 真实回测收益
-        v_cache = {0: 0.0}  # 空集 v(∅) = 0
+        # v_cache[mask] = 角色子集相对同期 HS300 的超额收益。
+        # 空联盟代表仅持有基准，因此 v(∅)=0。
+        v_cache = {0: 0.0}
         total_masks = (1 << n) - 1
         done_masks = 0
+        full_coalition_results = full_results
 
         for mask in range(1, 1 << n):
             subset = {roles[i] for i in range(n) if (mask >> i) & 1}
             try:
-                res = self._run_pipeline_backtest(
-                    df_daily, dates, role_selections, index_returns, params,
-                    active_roles=subset,
+                if mask == total_masks and full_results is not None:
+                    res = full_results
+                else:
+                    res = self._run_pipeline_backtest(
+                        df_daily, dates, role_selections, index_returns, params,
+                        active_roles=subset,
+                    )
+                if mask == total_masks:
+                    full_coalition_results = res
+                benchmark_info = build_benchmark_info(
+                    index_returns,
+                    res.get("monthly_returns"),
+                    portfolio_return=res.get("total_return"),
                 )
-                v_cache[mask] = res["total_return"]
+                v_cache[mask] = benchmark_info["excess"]
+            except BacktestError as exc:
+                if exc.error_code == "BENCHMARK_DATA_MISSING":
+                    raise
+                subset_text = "、".join(sorted(subset)) or "空联盟"
+                raise BacktestError(
+                    "COALITION_BACKTEST_FAILED",
+                    f"联盟「{subset_text}」回测失败：{exc.error_message}",
+                ) from exc
             except Exception as e:
-                print(f"  [警告] 子集 {subset} 回测失败: {e}，按 0 处理")
-                v_cache[mask] = 0.0
+                subset_text = "、".join(sorted(subset)) or "空联盟"
+                raise BacktestError(
+                    "COALITION_BACKTEST_FAILED",
+                    f"联盟「{subset_text}」回测失败：{e}",
+                ) from e
             done_masks += 1
             pct = 52 + (done_masks / total_masks) * 36
             subset_sorted = sorted(subset)
@@ -1284,14 +1728,14 @@ class BacktestExecutor:
                 phi += weight * (v_cache[mask_with_i] - v_cache[mask])
             shapley_values[roles[i]] = phi
 
-        # ---- 3. 公理化校验：Σφᵢ == v(N) ----
+        # ---- 3. 公理化校验：Σφᵢ == 全组合超额收益 ----
         total_shapley = sum(shapley_values.values())
         full_mask = (1 << n) - 1
         v_full = v_cache[full_mask]
         check_pass = abs(total_shapley - v_full) < 1e-6
 
-        print(f"  公理化校验: Σφᵢ={total_shapley:.6f}, v(N)={v_full:.6f}, "
-              f"{'✅ 通过' if check_pass else '❌ 不通过'}")
+        print(f"  公理化校验: sum(phi_i)={total_shapley:.6f}, v(N)={v_full:.6f}, "
+              f"{'[PASS]' if check_pass else '[FAIL]'}")
 
         # ---- 4. 组装 attribution 结构 ----
         attribution = {}
@@ -1312,22 +1756,28 @@ class BacktestExecutor:
                 "highlight": highlight,
             }
 
-        attribution["_benchmark"] = {
-            "name": "沪深300",
-            "return": index_returns.get("benchmark_return", 0),
-        }
+        full_coalition_results = full_coalition_results or {}
+        full_total_return = float(full_coalition_results.get("total_return", 0.0))
+        portfolio_monthly = full_coalition_results.get("monthly_returns")
+        benchmark = build_benchmark_info(
+            index_returns, portfolio_monthly, portfolio_return=full_total_return
+        )
+        attribution["_benchmark"] = benchmark
         attribution["_shapley_summary"] = {
-            "description": "各角色Shapley贡献（带符号，和为全组合收益）",
+            "description": "各角色Shapley贡献（带符号，和为全组合超额收益）",
+            "characteristic_function": "excess_return_vs_hs300",
             "contributions": {r: attribution[r]["contribution_pct"] for r in roles},
             "sum": total_shapley,
-            "full_return": v_full,
+            "full_return": full_total_return,
+            "benchmark_return": benchmark["return"],
+            "full_excess_return": v_full,
             "axiom_check": check_pass,
         }
 
         print("\n  [Shapley归因]")
         for role, pct in sorted(attribution["_shapley_summary"]["contributions"].items(),
                                 key=lambda x: x[1], reverse=True):
-            print(f"    {role}: {pct:+.1%}  (φ={shapley_values[role]:+.2%})")
+            print(f"    {role}: {pct:+.1%}  (phi={shapley_values[role]:+.2%})")
 
         self.progress.partial_shapley({r: float(v) for r, v in shapley_values.items()})
         self.progress.log(
@@ -2167,48 +2617,32 @@ class BacktestExecutor:
     def _assemble_results(self, performance, attribution, time_series, params):
         """组装v4响应格式（适配Pipeline + Leave-One-Out归因）"""
         
-        # 角色权重（Sprint 1：双池方案 - 新池40%内部测算）
-        # 方案A：负贡献角色仍分配（用 |φ|），HR权重作调节系数，单角色上限50%
+        # 角色权重（双轨方案 - 证据轨40%内部测算）
+        # 负贡献保留在证据层展示，但不进入证据轨建议权重。
         # 计算步骤：
-        #   1. 贡献份额_i = |Shapleyφ_i| / Σ|φ_j|   （绝对值占比，全部为正，负贡献角色也有份额）
-        #   2. 加权份额_i = 贡献份额_i × HR权重_i      （HR权重=调节系数，默认1.0）
-        #   3. 新池权重_i = 加权份额_i / Σ加权份额_j   （归一化）
-        #   4. 单角色上限 50%（防止HR过度倾斜某角色）
-        # 注意：只负责"新池40%"内部如何分，旧池60%的既定分配不在本系统计算范围内
+        #   1. 正贡献_i = max(Shapleyφ_i, 0)
+        #   2. 加权贡献_i = 正贡献_i × HR权重_i（默认1.0）
+        #   3. 水位法归一化；正贡献角色不足时最小幅度放宽50%上限
+        # 注意：只负责证据轨40%的内部建议，制度轨60%的既定分配不在本系统计算范围内。
         role_weights = params.get("role_weights") or {}
-        default_weight = 1.0 / len(performance) if performance else 0.2
-        MAX_ROLE_WEIGHT = 0.5  # 单角色新池权重上限
-        
-        # Step1: 绝对值贡献份额
-        phi_abs = {}
-        total_phi_abs = 0.0
-        for role in self.DYNAMIC_ROLES:
-            attr = attribution.get(role, {})
-            phi = attr.get("contribution_raw", 0)  # Shapley φ（带符号）
-            abs_val = abs(phi)
-            phi_abs[role] = abs_val
-            total_phi_abs += abs_val
-        
-        # Step2: 乘HR调节系数（默认1.0）
-        weighted = {}
-        for role in self.DYNAMIC_ROLES:
-            share = phi_abs[role] / total_phi_abs if total_phi_abs > 1e-12 else 0.0
-            w = role_weights.get(role, 1.0)  # HR调节系数
-            weighted[role] = share * w
-        
-        # Step3: 归一化
-        total_weighted = sum(weighted.values())
-        final_weight = {}
-        for role in self.DYNAMIC_ROLES:
-            final_weight[role] = weighted[role] / total_weighted if total_weighted > 1e-12 else 0.0
-        
-        # Step4: 单角色上限 50% + 重新归一化
-        for role in self.DYNAMIC_ROLES:
-            if final_weight[role] > MAX_ROLE_WEIGHT:
-                final_weight[role] = MAX_ROLE_WEIGHT
-        capped_total = sum(final_weight.values())
-        if capped_total > 1e-12:
-            final_weight = {r: w / capped_total for r, w in final_weight.items()}
+        MAX_ROLE_WEIGHT = 0.5  # 单角色证据轨建议权重上限
+        contributions_for_allocation = {
+            role: float(attribution.get(role, {}).get("contribution_raw", 0.0))
+            for role in self.DYNAMIC_ROLES
+        }
+        final_weight = allocate_new_pool_weights(
+            contributions_for_allocation,
+            role_weights=role_weights,
+            max_weight=MAX_ROLE_WEIGHT,
+        )
+        positive_role_count = sum(
+            1 for contribution in contributions_for_allocation.values()
+            if contribution > 1e-12
+        )
+        allocation_fallback = positive_role_count == 0
+        eligible_role_count = positive_role_count or len(self.DYNAMIC_ROLES)
+        effective_max_role_weight = max(MAX_ROLE_WEIGHT, 1.0 / eligible_role_count)
+        cap_relaxed = effective_max_role_weight > MAX_ROLE_WEIGHT + 1e-12
         
         # role_breakdown
         role_breakdown = []
@@ -2221,13 +2655,22 @@ class BacktestExecutor:
         for role in self.DYNAMIC_ROLES:
             attr = attribution.get(role, {})
             perf = performance.get("组合", {})
-            # 新池内权重（方案A：绝对值份额 × HR权重，单角色上限50%）
+            # 证据轨建议权重（正贡献 × 制度调节系数，水位法执行单角色上限50%）
             weight = final_weight.get(role, 0.0)
             
             # 使用相对贡献
             contribution_raw = attr.get("contribution_raw", 0)
             contribution_relative = attr.get("contribution_relative", 0)
-            highlight = attr.get("highlight", "未参与")
+            if contribution_raw < 0:
+                highlight = (
+                    f"Shapley超额贡献 {contribution_raw:.2%}（负贡献），"
+                    f"证据轨建议权重 {weight:.1%}"
+                )
+            else:
+                highlight = (
+                    f"Shapley超额贡献 {contribution_raw:+.2%}，"
+                    f"证据轨建议权重 {weight:.1%}"
+                )
             
             role_breakdown.append({
                 "role": role,
@@ -2254,7 +2697,9 @@ class BacktestExecutor:
         if shapley_summary:
             contributions = shapley_summary.get("contributions", {})
             attribution_type = "shapley"
-            attribution_desc = "各角色Shapley贡献（带符号，和为全组合收益）"
+            attribution_desc = shapley_summary.get(
+                "description", "各角色Shapley贡献（带符号，和为全组合超额收益）"
+            )
         else:
             contributions = relative_summary.get("contributions", {})
             attribution_type = "relative_benchmark"
@@ -2269,6 +2714,7 @@ class BacktestExecutor:
             "relative_contributions": contributions,
             "attribution_type": attribution_type,
             "attribution_description": attribution_desc,
+            "characteristic_function": shapley_summary.get("characteristic_function"),
         }
         
         # query_summary
@@ -2290,10 +2736,7 @@ class BacktestExecutor:
         # overview 数值 + 人话描述
         overview["total_return_desc"] = f"组合累计收益{cum_return*100:.2f}%"
         overview["benchmark_return_desc"] = f"基准({benchmark_info.get('name','沪深300')})收益{benchmark_return*100:.2f}%"
-        if excess_return > 0:
-            overview["excess_return_desc"] = f"超额收益{excess_return*100:.2f}%，跑赢基准"
-        else:
-            overview["excess_return_desc"] = f"超额收益{excess_return*100:.2f}%，跑输基准"
+        overview["excess_return_desc"] = describe_excess_return(excess_return)
         if has_perf:
             overview["max_drawdown_desc"] = f"最大回撤{overview['max_drawdown']*100:.2f}%"
             sharpe_val = overview["sharpe_ratio"]
@@ -2355,18 +2798,23 @@ class BacktestExecutor:
                 "type": "negative",
                 "text": f"{worst_neg[0]}贡献为负（{worst_neg[1]*100:+.2f}%），拖累组合表现，建议重点复盘",
             })
-        if excess_return > 0:
+        if excess_return > EXCESS_RETURN_EPSILON:
             highlights.append({
                 "type": "info",
                 "text": f"组合跑赢基准{excess_return*100:.2f}%，主动管理整体有效",
             })
-        else:
+        elif excess_return < -EXCESS_RETURN_EPSILON:
             highlights.append({
                 "type": "warning",
                 "text": f"组合跑输基准{abs(excess_return)*100:.2f}%，主动管理未跑赢",
             })
+        else:
+            highlights.append({
+                "type": "info",
+                "text": "组合与基准基本持平，暂未观察到显著超额",
+            })
 
-        # 分配建议（新池40%）
+        # 分配建议（证据轨40%）
         allocation_map = {rb["role"]: rb["weight"] for rb in role_breakdown}
         if top_pos:
             top_role = top_pos[0]
@@ -2374,14 +2822,14 @@ class BacktestExecutor:
             top_role = role_ranking[0] if role_ranking else "无"
         recommendation = {
             "summary": overview["excess_return_desc"] + "，" + (
-                f"建议新池40%按贡献分配，{top_role}分配最高（{allocation_map.get(top_role,0)*100:.1f}%）"
+                f"建议证据轨40%按贡献形成权重，{top_role}建议权重最高（{allocation_map.get(top_role,0)*100:.1f}%）"
             ),
             "focus": (
                 f"重点复盘{worst_neg[0]}（贡献{worst_neg[1]*100:+.2f}%），"
                 f"其负贡献主要拖累组合" if neg_roles else "各角色均正贡献，可维持现状"
             ),
             "role_weights_impact": (
-                "若HR调整某角色权重（新池内调节系数），其分配占比将相应变化"
+                "若制度侧调整某角色系数，其证据轨建议权重将相应变化"
             ),
         }
 
@@ -2401,20 +2849,21 @@ class BacktestExecutor:
                     "benchmark": params["benchmark"],
                     "rebalance_freq": params["rebalance_freq"],
                 },
+                "allocation_policy": {
+                    "method": "positive_shapley_capped",
+                    "negative_contribution_rewarded": False,
+                    "configured_max_role_weight": MAX_ROLE_WEIGHT,
+                    "effective_max_role_weight": effective_max_role_weight,
+                    "cap_relaxed": cap_relaxed,
+                    "fallback_equal_weight": allocation_fallback,
+                    "hr_multiplier_enabled": bool(role_weights),
+                    "neutral_selection": "deterministic_hash_v1",
+                },
+                # 回测结果携带生效配置，便于前端展示和事后审计。
+                "factor_config": params.get("factor_config"),
                 "time_series": time_series,
             }
         }
-
-
-# ============================================================
-# 自定义错误（Sprint 2：规范 error_code，Agent 可识别）
-# ============================================================
-class BacktestError(Exception):
-    """带 error_code 的回测错误。error_code 遵循 v4 接口规范。"""
-    def __init__(self, error_code, message):
-        super().__init__(message)
-        self.error_code = error_code
-        self.error_message = message
 
 
 # ============================================================
@@ -2437,7 +2886,7 @@ def run_query(query_json: dict, progress_callback=None) -> dict:
     progress = ProgressReporter(progress_callback)
     
     print("=" * 60)
-    print(f"🚀 回测引擎 - 请求ID: {request_id}")
+    print(f"[START] 回测引擎 - 请求ID: {request_id}")
     print("=" * 60)
     
     try:
@@ -2482,7 +2931,7 @@ def run_query(query_json: dict, progress_callback=None) -> dict:
         print(f"  [保存] response.json")
         
         print("\n" + "=" * 60)
-        print("✅ 回测完成!")
+        print("[OK] 回测完成!")
         print("=" * 60)
         progress.stage(7, 7, "complete", "回测完成", 100)
         
@@ -2496,7 +2945,7 @@ def run_query(query_json: dict, progress_callback=None) -> dict:
             "error_code": e.error_code,
             "error_message": e.error_message,
         }
-        print(f"\n❌ 错误[{e.error_code}]: {e.error_message}")
+        print(f"\n[ERROR][{e.error_code}]: {e.error_message}")
         return error_response
     except Exception as e:
         error_response = {
@@ -2505,7 +2954,7 @@ def run_query(query_json: dict, progress_callback=None) -> dict:
             "error_code": "EXECUTION_ERROR",
             "error_message": str(e),
         }
-        print(f"\n❌ 错误: {e}")
+        print(f"\n[ERROR]: {e}")
         return error_response
 
 

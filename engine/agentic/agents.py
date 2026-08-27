@@ -243,13 +243,13 @@ MOCK_DIALOGUE: list[dict[str, Any]] = [
 
 def mock_arbiter_speech(formula_shares: dict[str, float], negotiated: dict[str, float]) -> str:
     lines = [
-        "三方已接近收敛。我按 AlphaSplit 贡献值公式给出最终落账份额：",
+        "三方已接近收敛。我按 AlphaSplit 贡献值公式给出待确认的建议份额：",
         "C = Labor × Impact × Scarcity × Reuse。",
     ]
     for name, pct in formula_shares.items():
         neg = negotiated.get(name, pct)
         lines.append(
-            f"- {name}：公式 {pct:.1%}，协商意向约 {neg:.1%}，最终按公式落账 {pct:.1%}。"
+            f"- {name}：公式 {pct:.1%}，协商意向约 {neg:.1%}，建议方案采用 {pct:.1%}。"
         )
     lines.append("裁决生效：公式保公平下限，协商保留陈述与微调空间，二者以公式终值为准。")
     return "\n".join(lines)

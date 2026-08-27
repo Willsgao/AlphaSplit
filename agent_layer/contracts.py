@@ -30,6 +30,7 @@ class BacktestPlan:
     steps: list[PlanStep] = field(default_factory=list)
     preset_id: Optional[str] = None
     source: str = "rule"  # rule | llm | preset
+    factor_config: Optional[dict[str, Any]] = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -37,7 +38,7 @@ class BacktestPlan:
 
 @dataclass
 class AgentReport:
-    """对已完成回测结果的解读（供 HR / 业务阅读）。"""
+    """对已完成回测结果的解读（供治理责任人 / 业务阅读）。"""
 
     headline: str
     body: str
@@ -45,6 +46,9 @@ class AgentReport:
     focus_role: Optional[str] = None
     dual_pool_note: str = ""
     mode: str = "mock"
+    trust: dict[str, Any] = field(default_factory=dict)
+    evidence: list[dict[str, Any]] = field(default_factory=list)
+    llm_audit: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

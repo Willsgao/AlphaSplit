@@ -1,0 +1,464 @@
+/* AlphaSplit Fintech Cockpit — 深色路演科技感 */
+
+:root {
+  --fx-cyan: #22d3ee;
+  --fx-cyan-dim: rgba(34, 211, 238, 0.35);
+  --fx-glow: 0 0 24px rgba(34, 211, 238, 0.18);
+  --fx-panel: rgba(8, 24, 42, 0.72);
+  --digit: "DIN Alternate", "Segoe UI", "Noto Sans SC", system-ui, sans-serif;
+}
+
+[data-theme="dark"] {
+  --bg: #0a1a2f;
+  --bg2: #0d2138;
+  --ink: #e8f1ff;
+  --muted: #8ba3c0;
+  --line: rgba(34, 211, 238, 0.12);
+  --accent: #22d3ee;
+  --accent2: #f0c14b;
+  --accent-on: #041018;
+  --accent-soft: rgba(34, 211, 238, 0.1);
+  --accent-border: rgba(34, 211, 238, 0.4);
+  --accent-border-strong: #22d3ee;
+  --chart-ink: #e8f1ff;
+  --chart-muted: #8ba3c0;
+  --chart-grid: rgba(34, 211, 238, 0.08);
+  --chart-fill: rgba(34, 211, 238, 0.12);
+  --zone-active-bg: rgba(34, 211, 238, 0.08);
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="dark"] .bg-grid {
+  background:
+    radial-gradient(ellipse 70% 45% at 15% -5%, rgba(34, 211, 238, 0.14), transparent 55%),
+    radial-gradient(ellipse 50% 35% at 90% 5%, rgba(91, 141, 239, 0.12), transparent 50%),
+    linear-gradient(rgba(34, 211, 238, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.05) 1px, transparent 1px);
+  background-size: auto, auto, 40px 40px, 40px 40px;
+}
+
+[data-theme="dark"].roadshow-ui,
+[data-theme="dark"].roadshow-ui body {
+  --premium-bg: #0a1a2f;
+  --premium-surface: #0d2138;
+  --premium-ink: #e8f1ff;
+  --premium-muted: #8ba3c0;
+  --premium-line: rgba(34, 211, 238, 0.12);
+  --premium-accent: #22d3ee;
+  --premium-accent-soft: rgba(34, 211, 238, 0.1);
+  --premium-gold: #f0c14b;
+}
+
+[data-theme="dark"] .top {
+  background: rgba(10, 26, 47, 0.88);
+  border-bottom: 1px solid rgba(34, 211, 238, 0.15);
+  box-shadow: 0 1px 0 rgba(34, 211, 238, 0.06);
+}
+
+[data-theme="dark"] .logo {
+  background: linear-gradient(120deg, #e8f1ff, #22d3ee);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ECharts hosts */
+.echart {
+  width: 100%;
+  height: 280px;
+  min-height: 220px;
+}
+
+/* 驾驶舱内图表：固定高度，防止溢出遮挡下方区块 */
+.evidence-cockpit .live-chart-focus .echart,
+.backtest-live-panel .live-chart-focus .echart {
+  height: 200px !important;
+  min-height: 200px !important;
+  max-height: 200px !important;
+}
+
+.evidence-cockpit .live-zone-active .live-chart-focus .echart {
+  height: 220px !important;
+  min-height: 220px !important;
+  max-height: 220px !important;
+}
+
+.live-charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .live-charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* —— 75秒路演解说条 —— */
+.roadshow-narrator {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.roadshow-narrator.hidden {
+  display: none;
+}
+
+.roadshow-narrator-inner {
+  padding: 0.85rem 1.15rem;
+}
+
+.roadshow-narrator-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.roadshow-phase {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent, #22d3ee);
+}
+
+.roadshow-timer {
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.roadshow-line {
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--ink);
+  min-height: 2.8em;
+}
+
+.roadshow-questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.roadshow-q {
+  font-size: 0.78rem;
+  color: var(--muted);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition: color 0.25s, border-color 0.25s, background 0.25s;
+}
+
+.roadshow-q.active {
+  color: var(--accent, #22d3ee);
+  border-color: rgba(34, 211, 238, 0.35);
+  background: rgba(34, 211, 238, 0.08);
+}
+
+.dual-pool-panel.roadshow-highlight {
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.45), var(--fx-glow);
+  animation: roadshowPulse 1.2s ease-in-out 2;
+}
+
+@keyframes roadshowPulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.25); }
+  50% { box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.45), var(--fx-glow); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dual-pool-panel.roadshow-highlight { animation: none; }
+}
+
+@media (max-width: 720px) {
+  .roadshow-questions { flex-direction: column; gap: 0.35rem; }
+  body.roadshow-mode #panel-backtest.is-running .backtest-narrative .narrative-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.echart-tall {
+  height: 320px;
+}
+
+.chart-wrap .echart {
+  display: block;
+}
+
+.glow-panel {
+  position: relative;
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  border-radius: 14px;
+  background: linear-gradient(165deg, rgba(13, 33, 56, 0.95), rgba(8, 24, 42, 0.9));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), var(--fx-glow);
+  overflow: hidden;
+}
+
+[data-theme="dark"] .glow-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(34, 211, 238, 0.07) 50%,
+    transparent 60%
+  );
+  background-size: 220% 100%;
+  animation: sweep-glow 4.5s ease-in-out infinite;
+  opacity: 0.55;
+}
+
+@keyframes sweep-glow {
+  0% { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="dark"] .glow-panel::before { animation: none; }
+}
+
+/* Hero KPI digits */
+.kpi-strip .kpi-value {
+  font-family: var(--digit);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  transition: color 0.25s ease;
+}
+
+[data-theme="dark"] .kpi-strip {
+  border: 1px solid rgba(34, 211, 238, 0.18);
+  background: rgba(8, 24, 42, 0.65);
+  box-shadow: var(--fx-glow);
+}
+
+[data-theme="dark"] .kpi-cell {
+  border-right-color: rgba(34, 211, 238, 0.12);
+}
+
+[data-theme="dark"] .kpi-value.positive { color: #34d399; }
+[data-theme="dark"] .kpi-value.negative { color: #fb7185; }
+
+/* Evidence cockpit */
+.evidence-cockpit .cockpit-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.shapley-ring-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0.75rem 0.35rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  background: rgba(34, 211, 238, 0.06);
+}
+
+.shapley-ring {
+  width: 44px;
+  height: 44px;
+}
+
+.shapley-ring .ring-bg {
+  fill: none;
+  stroke: rgba(34, 211, 238, 0.15);
+  stroke-width: 3.2;
+}
+
+.shapley-ring .ring-fg {
+  fill: none;
+  stroke: #22d3ee;
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.65));
+  transition: stroke-dasharray 0.35s ease;
+}
+
+.ring-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.ring-count {
+  font-family: var(--digit);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.ring-caption {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.progress-head-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.shapley-mini {
+  font-family: var(--digit);
+  font-size: 0.78rem;
+  color: var(--accent);
+  opacity: 0.9;
+}
+
+[data-theme="dark"] .backtest-progress-float .backtest-progress-inner {
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  background: rgba(8, 24, 42, 0.94);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), 0 0 28px rgba(34, 211, 238, 0.12);
+}
+
+[data-theme="dark"] .backtest-progress-fill {
+  background: linear-gradient(90deg, #0ea5e9, #22d3ee, #67e8f9);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.55);
+}
+
+[data-theme="dark"] .live-zone-active {
+  border-color: rgba(34, 211, 238, 0.55) !important;
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.25), var(--fx-glow);
+}
+
+[data-theme="dark"] .journey-step.active .step-ring {
+  background: var(--accent);
+  color: var(--accent-on);
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.45);
+}
+
+[data-theme="dark"] .btn.primary {
+  background: linear-gradient(135deg, #0891b2, #22d3ee);
+  color: #041018;
+  border: none;
+  box-shadow: 0 0 18px rgba(34, 211, 238, 0.35);
+}
+
+[data-theme="dark"] .btn.primary:hover {
+  filter: brightness(1.06);
+}
+
+.dual-track-chart-wrap {
+  margin-top: 1rem;
+}
+
+.demo-flow { display: none !important; }
+.hero-strip { display: none !important; }
+
+@media (max-width: 900px) {
+  .echart { height: 240px; }
+  .shapley-ring-wrap { width: 100%; justify-content: flex-start; }
+}
+
+[data-theme="dark"].roadshow-ui .hero-premium {
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  background: linear-gradient(145deg, rgba(13, 33, 56, 0.95), rgba(8, 24, 42, 0.88));
+  box-shadow: 0 0 40px rgba(34, 211, 238, 0.08);
+}
+
+[data-theme="dark"].roadshow-ui .hero-eyebrow {
+  color: #22d3ee;
+  letter-spacing: 0.12em;
+}
+
+[data-theme="dark"].roadshow-ui .compliance-pill {
+  border-color: rgba(240, 193, 75, 0.45);
+  color: #f0c14b;
+  background: rgba(240, 193, 75, 0.1);
+}
+
+/* —— 75秒路演解说条 —— */
+.roadshow-narrator {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  margin: 0 0 1rem;
+}
+
+.roadshow-narrator.hidden { display: none; }
+
+.roadshow-narrator-inner { padding: 0.85rem 1.15rem; }
+
+.roadshow-narrator-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.roadshow-phase {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent, #22d3ee);
+}
+
+.roadshow-timer {
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.roadshow-line {
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--ink);
+  min-height: 2.8em;
+}
+
+.roadshow-questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.roadshow-q {
+  font-size: 0.78rem;
+  color: var(--muted);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  transition: color 0.25s, border-color 0.25s, background 0.25s;
+}
+
+.roadshow-q.active {
+  color: var(--accent, #22d3ee);
+  border-color: rgba(34, 211, 238, 0.35);
+  background: rgba(34, 211, 238, 0.08);
+}
+
+.dual-pool-panel.roadshow-highlight {
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.45), var(--fx-glow);
+  animation: roadshowPulse 1.2s ease-in-out 2;
+}
+
+@keyframes roadshowPulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.25); }
+  50% { box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.45), var(--fx-glow); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dual-pool-panel.roadshow-highlight { animation: none; }
+}
+
+@media (max-width: 720px) {
+  .roadshow-questions { flex-direction: column; gap: 0.35rem; }
+}

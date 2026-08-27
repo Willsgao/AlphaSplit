@@ -80,7 +80,7 @@ def _utterance(
             return (
                 f"本轮夏普利边际贡献约 {shapley_pct:+.2f}%，新池建议权重 {new_w*100:.1f}%。"
                 f"行业/岗位决策对组合超额贡献显著，6:4 合成仅 {composite*100:.1f}% 低估了我的边际价值，"
-                f"我主张新池内至少 {claim*100:.1f}%。"
+                f"我主张总资源池份额至少 {claim*100:.1f}%。"
             )
         if shapley_pct < 0:
             return (
@@ -95,7 +95,7 @@ def _utterance(
     return (
         f"已听取其他岗位意见。我同意以夏普利为协商锚点，"
         f"在 ±5% 带宽内将主张调整为 {claim*100:.1f}%，"
-        f"请 HR 以 6:4 证据合成 {composite*100:.1f}% 为基准落账讨论。"
+        f"请治理责任人以 6:4 证据合成 {composite*100:.1f}% 为基准讨论分配方案。"
     )
 
 
@@ -175,10 +175,10 @@ def _arbiter_speech(
     band: float,
 ) -> str:
     lines = [
-        "【投委会 / HR 仲裁意见】",
+        "【投委会 / 治理责任人意见】",
         "1) 计量锚点：HS300 回测夏普利边际贡献（新池 40%）；",
         f"2) 制度保留：现行分配占旧池 60%；合成公式 = 60%×现行 + 40%×夏普利；",
-        f"3) 各方可在证据锚点 ±{band:.0%} 带宽内协商，最终须人工确认，非自动发薪。",
+        f"3) 各方可在证据锚点 ±{band:.0%} 带宽内协商，最终须由治理责任人确认，系统不自动执行分配。",
         "",
         "各岗位 6:4 合成基准与系统建议：",
     ]
@@ -188,7 +188,7 @@ def _arbiter_speech(
             f"→ 合成 {composite[role]:.1%}；协商意向 {negotiated.get(role, 0):.1%}；"
             f"建议案 {proposed.get(role, composite[role]):.1%}"
         )
-    lines.append("\n请负责人在下方确认或微调后落账。")
+    lines.append("\n请治理责任人在下方确认或微调方案后再应用。")
     return "\n".join(lines)
 
 
@@ -231,7 +231,7 @@ def run_role_negotiation(
             {"name": r, "role": r, "initial_claim": round(final_norm.get(r, composite[r]), 4)}
             for r in ROLE_ORDER
         ],
-        "arbiter": {"name": "投委会秘书", "role": "HR / 投委会"},
+        "arbiter": {"name": "投委会秘书", "role": "治理责任人 / 投委会"},
         "rounds": rounds,
         "converged": True,
         "arbiter_intervened": False,

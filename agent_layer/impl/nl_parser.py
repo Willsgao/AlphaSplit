@@ -59,7 +59,7 @@ def parse_natural_language(
 ) -> dict[str, Any]:
     text = (text or "").strip()
     if not text:
-        return dict(PRESETS["demo_h1_2024"]["query"])
+        return dict(PRESETS["demo_roadshow_2024h2_2025h1"]["query"])
 
     tr = _extract_dates(text)
     industry = _extract_industry(text, valid_industries)

@@ -25,12 +25,16 @@ class TestRoleNegotiation(unittest.TestCase):
         self.assertEqual(len(out["agents"]), 5)
         self.assertEqual(set(out["formula_shares"].keys()), set(ROLE_ORDER))
         self.assertEqual(len(out["rounds"][0]["utterances"]), 5)
+        opening_text = "\n".join(row["text"] for row in out["rounds"][0]["utterances"])
+        self.assertNotIn("主张新池内", opening_text)
+        self.assertIn("总资源池份额", opening_text)
 
     def test_dual_track(self):
         base, new_pool, composite = build_dual_track_weights(self.backtest)
         self.assertAlmostEqual(sum(base.values()), 1.0, places=3)
         self.assertAlmostEqual(sum(composite.values()), 1.0, places=3)
-        self.assertGreater(composite["行业分析师"], base["行业分析师"])
+        top_role = max(new_pool, key=new_pool.get)
+        self.assertGreater(composite[top_role], base[top_role])
 
     def test_confirm(self):
         nego = run_role_negotiation(self.backtest)

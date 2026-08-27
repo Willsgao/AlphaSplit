@@ -11,8 +11,8 @@ from agent_layer.registry import create_runtime
 class TestAgentPlanner(unittest.TestCase):
     def test_preset_demo(self):
         planner = BacktestPlanner()
-        plan = planner.plan(preset_id="demo_h1_2024")
-        self.assertEqual(plan.query["time_range"]["start_date"], "2024-01-01")
+        plan = planner.plan(preset_id="demo_roadshow_2024h2_2025h1")
+        self.assertEqual(plan.query["time_range"]["start_date"], "2024-07-01")
         self.assertEqual(plan.source, "preset")
 
     def test_nl_semiconductor(self):
@@ -28,7 +28,7 @@ class TestAgentPlanner(unittest.TestCase):
 class TestAgentRuntime(unittest.TestCase):
     def test_plan_only_pipeline(self):
         rt = create_runtime(meta={"industries": ["半导体"]})
-        result = rt.run_pipeline(preset_id="demo_h1_2024")
+        result = rt.run_pipeline(preset_id="demo_roadshow_2024h2_2025h1")
         self.assertEqual(result.status, "planned")
         self.assertIsNotNone(result.plan)
 
@@ -41,10 +41,21 @@ class TestAgentRuntime(unittest.TestCase):
             self.skipTest("demo json missing")
         data = json.loads(demo_path.read_text(encoding="utf-8"))
         rt = create_runtime()
-        plan = rt.plan_backtest(preset_id="demo_h1_2024")
+        plan = rt.plan_backtest(preset_id="demo_roadshow_2024h2_2025h1")
         report = rt.interpret_backtest(data, plan)
         self.assertIn("夏普利", report.body)
         self.assertTrue(report.dual_pool_note)
+
+    def test_interpreter_describes_zero_excess_as_flat(self):
+        rt = create_runtime()
+        report = rt.interpret_backtest({
+            "status": "success",
+            "results": {
+                "overview": {"total_return": 0.0, "excess_return": 0.0},
+                "role_breakdown": [],
+            },
+        })
+        self.assertIn("基本持平", report.headline)
 
 
 if __name__ == "__main__":

@@ -2,14 +2,14 @@
   "scenario": {
     "name": "HS300 五角色投研贡献协商",
     "domain": "equity_research",
-    "description": "基于 HS300 多角色 Pipeline 夏普利归因，五投研岗位（行业/个股/策略/量化/风控）在 6:4 双轨框架下协商新池分配，人工确认后落账。",
+    "description": "基于 HS300 多角色 Pipeline 夏普利归因，五投研岗位（行业/个股/策略/量化/风控）在 6:4 双轨框架下协商广义价值分配方案，人工确认后方可应用。",
     "note": "本场景为分配主线；quant_fund 三人为早期因子复用附录样例。"
   },
   "fund": {
     "name": "示例资管机构投研团队",
     "total_bonus_pool": 10000000,
     "platform_share": 0.0,
-    "platform_description": "可分配池默认 1000 万，旧池 60% 沿用现行制度，新池 40% 按夏普利证据"
+    "platform_description": "可分配资源池默认 1000 万资源单位，旧池 60% 沿用现行制度，证据池 40% 按夏普利贡献形成建议"
   },
   "negotiation": {
     "roles": ["行业分析师", "个股分析师", "策略分析师", "量化分析师", "风控分析师"],

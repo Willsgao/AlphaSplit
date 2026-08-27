@@ -5,41 +5,182 @@ from __future__ import annotations
 import json
 import os
 import re
+import socket
+import time
+import urllib.error
+import urllib.request
+from contextvars import ContextVar
+from dataclasses import asdict, dataclass
 from typing import Any, Optional
+
+
+RETRYABLE_HTTP_STATUS = {429, 500, 502, 503, 504}
+
+
+@dataclass(frozen=True)
+class LLMCallMetadata:
+    provider: str
+    model: str
+    status: str
+    duration_ms: float
+    attempts: int
+    response_format: str | None
+    fallback_used: bool = False
+    error_code: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+class LLMProviderError(RuntimeError):
+    """不包含凭证和完整响应正文的结构化模型调用错误。"""
+
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
+_last_call: ContextVar[LLMCallMetadata | None] = ContextVar(
+    "alphasplit_last_llm_call", default=None
+)
+
+
+def reset_llm_call_metadata() -> None:
+    _last_call.set(None)
+
+
+def get_last_llm_call() -> dict[str, Any] | None:
+    value = _last_call.get()
+    return value.to_dict() if value else None
 
 
 def llm_available() -> bool:
     return bool(os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("OPENAI_API_KEY"))
 
 
-def call_llm(messages: list[dict], *, temperature: float = 0.3) -> str:
-    import urllib.request
+def llm_status() -> dict[str, Any]:
+    """返回可公开的模型状态，不暴露 Key 或完整服务地址。"""
+    if os.environ.get("DEEPSEEK_API_KEY"):
+        provider = "deepseek"
+    elif os.environ.get("OPENAI_API_KEY"):
+        provider = "openai_compatible"
+    else:
+        provider = "none"
+    return {
+        "available": llm_available(),
+        "provider": provider,
+        "model": os.environ.get("AGENT_LAYER_LLM_MODEL", "deepseek-chat"),
+    }
 
+
+def call_llm(
+    messages: list[dict],
+    *,
+    temperature: float = 0.3,
+    response_format: dict[str, Any] | None = None,
+) -> str:
     key = os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("OPENAI_API_KEY")
     if not key:
-        raise RuntimeError("未配置 LLM API Key")
+        raise LLMProviderError("LLM_NOT_CONFIGURED", "未配置 LLM API Key")
 
     base = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-    payload = json.dumps(
-        {
-            "model": os.environ.get("AGENT_LAYER_LLM_MODEL", "deepseek-chat"),
+    provider = "deepseek" if os.environ.get("DEEPSEEK_API_KEY") else "openai_compatible"
+    model = os.environ.get("AGENT_LAYER_LLM_MODEL", "deepseek-chat")
+    timeout = max(5.0, min(float(os.environ.get("AGENT_LAYER_LLM_TIMEOUT", "60")), 120.0))
+    max_retries = max(0, min(int(os.environ.get("AGENT_LAYER_LLM_MAX_RETRIES", "1")), 3))
+    backoff = max(0.0, min(float(os.environ.get("AGENT_LAYER_LLM_RETRY_BACKOFF", "0.25")), 2.0))
+    current_format = dict(response_format) if response_format else None
+    fallback_used = False
+    retry_count = 0
+    attempts = 0
+    started = time.monotonic()
+    reset_llm_call_metadata()
+
+    def finish(status: str, error_code: str | None = None) -> None:
+        _last_call.set(LLMCallMetadata(
+            provider=provider,
+            model=model,
+            status=status,
+            duration_ms=round((time.monotonic() - started) * 1000, 3),
+            attempts=attempts,
+            response_format=(current_format or {}).get("type"),
+            fallback_used=fallback_used,
+            error_code=error_code,
+        ))
+
+    while True:
+        attempts += 1
+        body: dict[str, Any] = {
+            "model": model,
             "messages": messages,
             "temperature": temperature,
-        },
-        ensure_ascii=False,
-    ).encode("utf-8")
-    req = urllib.request.Request(
-        f"{base.rstrip('/')}/v1/chat/completions",
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {key}",
-        },
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-    return data["choices"][0]["message"]["content"]
+        }
+        if current_format:
+            body["response_format"] = current_format
+        req = urllib.request.Request(
+            f"{base.rstrip('/')}/v1/chat/completions",
+            data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {key}",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                raw = resp.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            try:
+                detail = exc.read().decode("utf-8", errors="replace").lower()
+            except Exception:
+                detail = ""
+            schema_rejected = (
+                current_format is not None
+                and current_format.get("type") == "json_schema"
+                and not fallback_used
+                and exc.code == 400
+                and ("json_schema" in detail or "response_format" in detail)
+            )
+            if schema_rejected:
+                current_format = {"type": "json_object"}
+                fallback_used = True
+                continue
+            if exc.code in RETRYABLE_HTTP_STATUS and retry_count < max_retries:
+                retry_count += 1
+                if backoff:
+                    time.sleep(backoff * retry_count)
+                continue
+            code = f"LLM_HTTP_{exc.code}"
+            finish("error", code)
+            raise LLMProviderError(code, f"模型服务返回 HTTP {exc.code}") from exc
+        except (TimeoutError, socket.timeout) as exc:
+            if retry_count < max_retries:
+                retry_count += 1
+                if backoff:
+                    time.sleep(backoff * retry_count)
+                continue
+            finish("error", "LLM_TIMEOUT")
+            raise LLMProviderError("LLM_TIMEOUT", "模型服务请求超时") from exc
+        except urllib.error.URLError as exc:
+            if retry_count < max_retries:
+                retry_count += 1
+                if backoff:
+                    time.sleep(backoff * retry_count)
+                continue
+            finish("error", "LLM_CONNECTION_ERROR")
+            raise LLMProviderError("LLM_CONNECTION_ERROR", "无法连接模型服务") from exc
+
+        try:
+            data = json.loads(raw)
+            content = data["choices"][0]["message"]["content"]
+            if not isinstance(content, str) or not content.strip():
+                raise ValueError("empty content")
+        except (json.JSONDecodeError, KeyError, IndexError, TypeError, ValueError) as exc:
+            finish("error", "LLM_INVALID_RESPONSE")
+            raise LLMProviderError("LLM_INVALID_RESPONSE", "模型服务返回结构无效") from exc
+
+        finish("success")
+        return content
 
 
 def llm_plan_query(user_text: str, meta: dict[str, Any]) -> Optional[dict[str, Any]]:

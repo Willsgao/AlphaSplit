@@ -2,9 +2,9 @@
 
 **作者:** 徐远
 **日期:** 2026年8月22日
-**用途:** 面向 Agent / HR 系统的标准 HTTP 接口。Agent 将 HR 的自然语言查询解析为结构化 JSON，POST 到回测引擎，返回可直接生成报告的完整归因结果。**本文档是接口的唯一权威文档**（已整合原 v1/v2/v3/v4 规范，旧文档已删除）。
+**用途:** 面向 Agent / 治理决策系统的标准 HTTP 接口。Agent 将业务治理需求解析为结构化 JSON，POST 到回测引擎，返回可直接生成报告的完整归因结果。**本文档是接口的唯一权威文档**（已整合原 v1/v2/v3/v4 规范，旧文档已删除）。
 
-> **本文档对应的部署形态**：接口代码部署在本地或云服务器，Agent（LLM 服务）与回测引擎通过 HTTP 通信。流程为：**HR 自然语言 → Agent 解析为 JSON → POST `/api/v1/run` → 引擎回测 → 返回结果 JSON → Agent 生成报告**。网页版 `web_app.py` 仅供开发自测，不用于生产。
+> **本文档对应的部署形态**：接口代码部署在本地或云服务器，Agent（LLM 服务）与回测引擎通过 HTTP 通信。流程为：**业务治理需求 → Agent 解析为 JSON → POST `/api/v1/run` → 引擎回测 → 返回结果 JSON → Agent 生成报告**。网页版 `web_app.py` 仅供开发自测，不用于生产。
 
 > **涵盖范围**：HTTP 调用方式、请求/响应格式、字段枚举（含 84 行业列表）、错误码、结果下载、Agent 解析规则（§8）、部署方式、约束事项。旧版 `Agent接口规范_v1~v4` 已并入本文档并删除。
 
@@ -262,7 +262,7 @@ Content-Type: application/json
 | `query.time_range` | object | 时间范围，含 `start_date`/`end_date`（`YYYY-MM-DD`） | 使用全部数据范围 |
 | `query.target_role` | string | 聚焦角色（仅影响展示，归因仍为全集 5 角色） | 返回所有角色 |
 | `query.industry` | string | 行业板块筛选（东方财富二级，84 个） | 全行业汇总 |
-| `query.role_weights` | object | 各角色「相对调节系数」（新池 40% 内，未给角色默认 1.0=等权） | 各角色系数 = 1.0（纯 Shapley） |
+| `query.role_weights` | object | 各角色「相对调节系数」（证据轨 40% 内，未给角色默认 1.0=等权） | 各角色系数 = 1.0（纯 Shapley） |
 | `query.benchmark` | string | 基准指数：`hs300`/`csi500`/`shanghai` | `hs300` |
 | `query.rebalance_freq` | string | 调仓频率：`monthly`/`quarterly`/`yearly` | `monthly` |
 | `query.granularity` | string | 结果时间粒度：`monthly`/`quarterly`/`yearly` | `monthly` |
@@ -289,7 +289,7 @@ Content-Type: application/json
   调味发酵品
   ```
   也可调用 `/api/v1/meta` 校验；引擎返回的 `INDUSTRY_NOT_FOUND` 错误信息中同样带上全部有效行业 + 模糊匹配提示。
-- **role_weights** 示例（相对调节系数，权重自动归一化，单角色新池上限 50%）：
+- **role_weights** 示例（相对调节系数，权重自动归一化，单角色证据轨上限 50%）：
   ```json
   {
     "行业分析师": 0.3,
@@ -372,7 +372,8 @@ print(result["results"]["recommendation"]["summary"])
       "max_drawdown_desc": "最大回撤8.00%",
       "relative_contributions": {"行业分析师": 0.20, "个股分析师": 0.15, "...": "..."},
       "attribution_type": "shapley",
-      "attribution_description": "各角色Shapley贡献（带符号，和为全组合收益）"
+      "attribution_description": "各角色Shapley贡献（带符号，和为全组合超额收益）",
+      "characteristic_function": "excess_return_vs_hs300"
     },
 
     "target_role": null,
@@ -410,9 +411,9 @@ print(result["results"]["recommendation"]["summary"])
     ],
 
     "recommendation": {
-      "summary": "超额收益23.00%，跑赢基准，建议新池40%按贡献分配，行业分析师分配最高（20.0%）",
+      "summary": "超额收益23.00%，跑赢基准，建议证据轨40%按贡献形成广义价值分配方案，行业分析师建议份额最高（20.0%）",
       "focus": "重点复盘风控分析师（贡献-2.00%），其负贡献主要拖累组合",
-      "role_weights_impact": "若HR调整某角色权重（新池内调节系数），其分配占比将相应变化"
+      "role_weights_impact": "若治理责任人调整某角色的制度调节系数，其建议份额将相应变化"
     },
 
     "filter_detail": {
@@ -443,7 +444,7 @@ print(result["results"]["recommendation"]["summary"])
 | `results.role_ranking_desc` | string | 排名的自然语言描述 |
 | `results.role_breakdown` | array | 各角色贡献明细（5 个） |
 | `results.highlights` | array | 主要发现（正负贡献、聚焦角色、超额结论） |
-| `results.recommendation` | object | 新池 40% 分配建议 + 复盘建议 |
+| `results.recommendation` | object | 证据轨 40% 广义价值分配建议 + 复盘建议 |
 | `results.filter_detail` | object | 实际使用的筛选条件 |
 | `results.time_series` | array | 按 granularity 分段的收益序列 |
 
@@ -469,9 +470,9 @@ print(result["results"]["recommendation"]["summary"])
 |------|------|------|
 | `role` | string | 角色名称 |
 | `is_target` | boolean | 是否聚焦角色（target_role） |
-| `weight` | number | **新池 40% 内分配权重**（归一化，单角色上限 50%） |
-| `hr_weight` | number\|null | HR 调节系数（未设则 null） |
-| `shapley_raw` | number | Shapley φ 原始值（带符号） |
+| `weight` | number | **证据轨 40% 内建议权重**（归一化，单角色上限 50%） |
+| `hr_weight` | number\|null | 制度调节系数（历史兼容字段名，未设则 null） |
+| `shapley_raw` | number | Shapley φ 原始值（带符号，五角色之和等于组合超额收益） |
 | `contribution_raw` | number | 绝对贡献值（=shapley_raw） |
 | `contribution` | number | 规范键名，与 `contribution_raw` 一致 |
 | `contribution_relative` | number | Shapley 贡献占比（0~1） |
@@ -553,11 +554,11 @@ print(result["results"]["recommendation"]["summary"])
 
 ### 8.1 使用场景
 
-HR 用自然语言提问，Agent 识别意图和条件，生成查询 JSON。
+业务治理人员用自然语言提问，Agent 识别意图和条件，生成查询 JSON。
 
-**核心原则：HR 说多少，解析多少，没提到的字段留 `null`。**
+**核心原则：用户明确提出多少条件，Agent 就解析多少，未提到的字段留 `null`。**
 
-| HR 的自然语言 | Agent 解析的条件 | 未提到的字段 |
+| 用户的自然语言 | Agent 解析的条件 | 未提到的字段 |
 |-------------|----------------|-------------|
 | "2024年整体贡献分配" | time_range=2024全年 | 其他全部 null |
 | "去年半导体行业的贡献" | time_range=2025, industry=半导体 | 角色/权重等 null |
@@ -569,7 +570,7 @@ HR 用自然语言提问，Agent 识别意图和条件，生成查询 JSON。
 
 ### 8.2 时间识别
 
-| HR 表述 | 解析结果 |
+| 用户表述 | 解析结果 |
 |--------|----------|
 | "今年" | start_date=当年1月1日, end_date=今天 |
 | "去年" | start_date=去年1月1日, end_date=去年12月31日 |
@@ -581,7 +582,7 @@ HR 用自然语言提问，Agent 识别意图和条件，生成查询 JSON。
 
 Agent 需维护一张"自然语言 → 标准行业名"的映射表：
 
-| HR 表述 | 解析结果 |
+| 用户表述 | 解析结果 |
 |--------|----------|
 | "半导体" / "芯片" | industry = "半导体" |
 | "银行" | industry = "银行" |
@@ -597,7 +598,7 @@ Agent 需维护一张"自然语言 → 标准行业名"的映射表：
 
 ### 8.4 角色识别
 
-| HR 表述 | 解析结果 |
+| 用户表述 | 解析结果 |
 |--------|----------|
 | "行业分析师" / "看行业的" | target_role = "行业分析师" |
 | "个股分析师" / "选股的" | target_role = "个股分析师" |
@@ -612,17 +613,18 @@ Agent 需维护一张"自然语言 → 标准行业名"的映射表：
 | "行业分析师权重按30%" | role_weights.行业分析师 = 0.3, 其他 = null（用默认） |
 | "各角色五五开" | role_weights = 各0.2 |
 
-> **role_weights 语义（新池 40% 内的相对调节系数）**：
+> **role_weights 语义（证据轨 40% 内的相对调节系数）**：
 > - 未给角色默认系数 1.0（等权，纯 Shapley 客观贡献）；
-> - 新池权重_i = |Shapleyφ_i| × role_weights_i（归一化，单角色上限 50%）；
-> - 只影响"新池 40%"内部分配，不影响归因结果（Shapley 贡献不变）。
+> - 正贡献_i = max(Shapleyφ_i, 0)，负贡献保留在证据层但不参与证据轨建议份额；
+> - 证据轨权重_i = 正贡献_i × role_weights_i，经水位法归一化并执行单角色上限 50%；
+> - 只影响证据轨 40% 内的建议份额，不影响归因结果（Shapley 贡献不变）。
 
 ---
 
 ## 9. Agent 接入流程
 
 ```
-HR 自然语言提问（如"去年半导体行业，个股分析师贡献多少，按季度看"）
+业务治理人员自然语言提问（如"去年半导体行业，个股分析师贡献多少，按季度看"）
    ↓
 Agent 识别意图，构造 query JSON（参考 §4）
    ↓
@@ -635,17 +637,17 @@ Agent 直接读结论层字段生成报告：
    - results.overview     → 整体绩效（含人话 desc）
    - results.role_ranking → 角色贡献排名
    - results.highlights   → 主要发现（可直接转述）
-   - results.recommendation → 新池 40% 分配建议
+   - results.recommendation → 证据轨 40% 广义价值分配建议
    - results.role_breakdown → 逐角色明细（含 is_target）
    ↓
-返回自然语言回答给 HR
+返回自然语言回答给业务治理人员
 ```
 
 **Agent 优先使用的字段：**
 - 一句话总结：`results.recommendation.summary`
 - 整体表现：`results.overview`（配 `*_desc`）
 - 关键发现：`results.highlights[*].text`
-- 分配建议：`results.role_breakdown[*].weight`（新池 40% 内占比）
+- 分配建议：`results.role_breakdown[*].weight`（证据轨 40% 内建议份额）
 - 是否跑赢：`results.overview.excess_return`
 
 ---
@@ -657,8 +659,8 @@ Agent 直接读结论层字段生成报告：
 3. **可用角色**：5 个（行业/个股/策略/量化/风控分析师）。
 4. **计算耗时**：单次回测约 30~60 秒（Shapley 需跑多次子集回测）。HTTP 客户端应设置足够超时（建议 ≥ 600s）。
 5. **结果是确定性的**：相同输入 → 相同输出（历史数据不变，种子固定）。
-6. **6:4 双池**：`role_breakdown.weight` 只代表「新池 40%」内部测算权重；旧池 60% 既定分配不在本系统计算范围。
-7. **role_weights** 是「相对调节系数」（默认 1.0），只影响新池 40% 内分配，不改变 Shapley 归因结果。
+6. **6:4 双轨**：`role_breakdown.weight` 只代表「证据轨 40%」内部建议权重；制度轨 60% 的既定份额由组织治理规则提供。
+7. **role_weights** 是「相对调节系数」（默认 1.0），只影响证据轨 40% 内建议份额，不改变 Shapley 归因结果。
 8. **生产部署**：默认 Flask 开发服务器（`python3 server.py`）**不适用于生产**，仅作开发自测。生产必须用 gunicorn（详见 §2.3），命令为 `venv/bin/gunicorn -c gunicorn.conf.py wsgi:app`。引擎内部为串行计算，`workers` 固定为 1（配置见 `gunicorn.conf.py`）。
 9. **pandas 版本**：必须 `>=1.5,<3.0`。若意外升级到 pandas 3.x，回测会报 `Invalid frequency: M`（见 §2.1）。
 10. **网页版 vs 接口**：`web_app.py`（5050 端口）是给开发者自测的网页演示；`server.py`/`gunicorn`（5051）才是给 Agent 调用的正式接口，两者可同时运行，互不影响。

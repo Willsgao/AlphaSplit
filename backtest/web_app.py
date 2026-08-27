@@ -144,7 +144,7 @@ def download_all(request_id):
 
 @app.route("/api/hr_report/<request_id>")
 def hr_report(request_id):
-    """生成HR友好版报告"""
+    """生成治理责任人友好版报告（保留路由名以兼容旧调用）。"""
     filepath = os.path.join(RESULTS_DIR, request_id, "response.json")
     if not os.path.exists(filepath):
         return jsonify({"error": "结果不存在"}), 404
@@ -165,7 +165,7 @@ def hr_report(request_id):
     max_drawdown = overview.get("max_drawdown", 0)
     relative_contributions = overview.get("relative_contributions", {})
     
-    # 生成HR友好版报告
+    # 生成治理责任人友好版报告
     report = {
         "summary": "",
         "performance_summary": {},
@@ -178,20 +178,26 @@ def hr_report(request_id):
     industry = filter_detail.get("industry", "全行业")
     time_range = data.get("query_summary", "").split("，")[0] if "，" in data.get("query_summary", "") else "未知"
     
-    if excess_return > 0:
+    if excess_return > 0.00005:
         report["summary"] = f"✅ {time_range}期间，{industry}行业主动管理策略表现优秀，跑赢沪深300基准{excess_return:.2%}。"
-    else:
+    elif excess_return < -0.00005:
         report["summary"] = f"⚠️ {time_range}期间，{industry}行业主动管理策略表现不佳，跑输沪深300基准{abs(excess_return):.2%}。"
+    else:
+        report["summary"] = f"ℹ️ {time_range}期间，{industry}行业主动管理策略与沪深300基准基本持平。"
     
     # 2. 绩效总结
     report["performance_summary"] = {
         "portfolio_return": f"{total_return:.2%}",
         "benchmark_return": f"{benchmark_return:.2%}",
         "excess_return": f"{excess_return:.2%}",
-        "verdict": "跑赢基准" if excess_return > 0 else "跑输基准"
+        "verdict": (
+            "跑赢基准" if excess_return > 0.00005
+            else "跑输基准" if excess_return < -0.00005
+            else "与基准基本持平"
+        )
     }
     
-    # 3. 角色贡献（HR版）
+    # 3. 角色贡献（治理版）
     role_explanations = {
         "行业分析师": "负责选择投资哪些行业，通过分析行业趋势和前景做出决策",
         "个股分析师": "负责在选定行业内选择具体股票，通过分析公司基本面和财务数据做出决策",
@@ -251,9 +257,9 @@ def hr_report(request_id):
         }
     ]
     
-    # 5. 奖金分配建议
+    # 5. 广义价值分配建议
     if excess_return > 0:
-        report["recommendation"] = f"✅ 超额收益为正（{excess_return:.2%}），建议按角色权重分配奖金。"
+        report["recommendation"] = f"超额收益为正（{excess_return:.2%}），可将角色权重用于广义价值分配决策。"
         report["bonus_allocation"] = [
             {"role": r["role"], "weight": r["weight"], "reason": r["contribution"]}
             for r in report["role_contributions"]
@@ -261,8 +267,8 @@ def hr_report(request_id):
     else:
         report["recommendation"] = f"⚠️ 超额收益为负（{excess_return:.2%}），主动管理未创造价值。建议："
         report["recommendation_details"] = [
-            "不分配超额奖金",
-            "或按角色权重分配基本绩效奖金",
+            "暂停扩大贡献证据池",
+            "现行资源方案保持稳定，暂不按本期结果增加动态份额",
             "重点改进拖累收益最大的角色（个股分析师）"
         ]
         report["bonus_allocation"] = [

@@ -1,94 +1,23 @@
 {
-  "overview": {
-    "行业分析师": {
-      "shapley_value": 0.23486633387899586,
-      "contribution_raw": 0.23486633387899586,
-      "contribution_pct": -0.7348464881378537,
-      "contribution_relative": -0.7348464881378537,
-      "highlight": "Shapley贡献 +23.49%，权重 -73.5%"
-    },
-    "个股分析师": {
-      "shapley_value": -0.4754963081287208,
-      "contribution_raw": -0.4754963081287208,
-      "contribution_pct": 1.4877261733515468,
-      "contribution_relative": 1.4877261733515468,
-      "highlight": "Shapley贡献 -47.55%（负贡献），权重 148.8%"
-    },
-    "策略分析师": {
-      "shapley_value": -0.02980555672754122,
-      "contribution_raw": -0.02980555672754122,
-      "contribution_pct": 0.09325520744710696,
-      "contribution_relative": 0.09325520744710696,
-      "highlight": "Shapley贡献 -2.98%（负贡献），权重 9.3%"
-    },
-    "量化分析师": {
-      "shapley_value": -0.00012713150427019933,
-      "contribution_raw": -0.00012713150427019933,
-      "contribution_pct": 0.0003977672657536776,
-      "contribution_relative": 0.0003977672657536776,
-      "highlight": "Shapley贡献 -0.01%（负贡献），权重 0.0%"
-    },
-    "风控分析师": {
-      "shapley_value": -0.04905012423009595,
-      "contribution_raw": -0.04905012423009595,
-      "contribution_pct": 0.15346734007344637,
-      "contribution_relative": 0.15346734007344637,
-      "highlight": "Shapley贡献 -4.91%（负贡献），权重 15.3%"
-    }
+  "validation_version": 2,
+  "request_id": "stage3_20260825",
+  "period": "2024-01-01~2024-06-30",
+  "benchmark": "hs300",
+  "characteristic_function": "excess_return_vs_hs300",
+  "definition": "v(S)=R(S)-R_HS300, v(empty)=0",
+  "portfolio_return": 0.29513720233273366,
+  "benchmark_return": 0.07660441320540579,
+  "full_excess_return": 0.21853278912732788,
+  "shapley_values": {
+    "行业分析师": 0.1492566892456762,
+    "个股分析师": 0.06091018593309609,
+    "策略分析师": -0.0056272652400173664,
+    "量化分析师": 0.011034508867993219,
+    "风控分析师": 0.002958670320579747
   },
-  "attribution": {
-    "行业分析师": {
-      "shapley_value": 0.23486633387899586,
-      "contribution_raw": 0.23486633387899586,
-      "contribution_pct": -0.7348464881378537,
-      "contribution_relative": -0.7348464881378537,
-      "highlight": "Shapley贡献 +23.49%，权重 -73.5%"
-    },
-    "个股分析师": {
-      "shapley_value": -0.4754963081287208,
-      "contribution_raw": -0.4754963081287208,
-      "contribution_pct": 1.4877261733515468,
-      "contribution_relative": 1.4877261733515468,
-      "highlight": "Shapley贡献 -47.55%（负贡献），权重 148.8%"
-    },
-    "策略分析师": {
-      "shapley_value": -0.02980555672754122,
-      "contribution_raw": -0.02980555672754122,
-      "contribution_pct": 0.09325520744710696,
-      "contribution_relative": 0.09325520744710696,
-      "highlight": "Shapley贡献 -2.98%（负贡献），权重 9.3%"
-    },
-    "量化分析师": {
-      "shapley_value": -0.00012713150427019933,
-      "contribution_raw": -0.00012713150427019933,
-      "contribution_pct": 0.0003977672657536776,
-      "contribution_relative": 0.0003977672657536776,
-      "highlight": "Shapley贡献 -0.01%（负贡献），权重 0.0%"
-    },
-    "风控分析师": {
-      "shapley_value": -0.04905012423009595,
-      "contribution_raw": -0.04905012423009595,
-      "contribution_pct": 0.15346734007344637,
-      "contribution_relative": 0.15346734007344637,
-      "highlight": "Shapley贡献 -4.91%（负贡献），权重 15.3%"
-    },
-    "_benchmark": {
-      "name": "沪深300",
-      "return": 0
-    },
-    "_shapley_summary": {
-      "description": "各角色Shapley贡献（带符号，和为全组合收益）",
-      "contributions": {
-        "行业分析师": -0.7348464881378537,
-        "个股分析师": 1.4877261733515468,
-        "策略分析师": 0.09325520744710696,
-        "量化分析师": 0.0003977672657536776,
-        "风控分析师": 0.15346734007344637
-      },
-      "sum": -0.3196127867116323,
-      "full_return": -0.3196127867116323,
-      "axiom_check": "True"
-    }
-  },
-  "elapsed_min": 10.645303118228913
+  "shapley_sum": 0.2185327891273279,
+  "axiom_check": true,
+  "tolerance": 1e-6,
+  "coalition_failures": 0,
+  "neutral_selection": "deterministic_hash_v1"
 }

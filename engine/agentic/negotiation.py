@@ -2,7 +2,7 @@
 多轮协商协议：Mock 优先，可选 LLM。
 
 机制：
-  公式锚点 → 带宽内协商建议案 → 等待人工确认落账
+  公式锚点 → 带宽内协商建议案 → 等待人工确认方案
 """
 from __future__ import annotations
 
@@ -72,7 +72,7 @@ def _arbiter_speech(
     lines = [
         "协商已形成建议案。制度规则如下：",
         f"1) 贡献值公式给出可审计锚点；2) 各方可在锚点 ±{band:.0%} 带宽内协商；"
-        "3) 最终须人工确认后落账（合规定责）。",
+        "3) 最终须由治理责任人确认后应用。",
         "C = Labor × Impact × Scarcity × Reuse。",
     ]
     for name, anchor in formula_shares.items():
@@ -311,7 +311,7 @@ def confirm_settlement(
     proposed: dict[str, float] | None = None,
     allow_outside_band: bool = False,
 ) -> dict[str, Any]:
-    """人工确认接口：输入份额（可未归一），返回确认后的落账。"""
+    """人工确认接口：输入份额（可未归一），返回确认后的分配方案。"""
     scenario = load_scenario(scenario_name)
     params = scenario_params(scenario)
     formula_shares, formula_result = _formula_shares(scenario)

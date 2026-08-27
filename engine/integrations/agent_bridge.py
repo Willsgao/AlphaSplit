@@ -15,7 +15,10 @@ if str(ROOT) not in sys.path:
 
 from agent_layer import create_runtime  # noqa: E402
 from agent_layer.contracts import AgentMode  # noqa: E402
+from agent_layer.impl.factor_agent import propose_with_factor_agent  # noqa: E402
+from agent_layer.impl.llm import llm_status  # noqa: E402
 from engine.integrations.quantskills_backtest import get_meta, run_backtest_query  # noqa: E402
+from backtest.factor_config import factor_config_meta  # noqa: E402
 
 
 def _load_industries() -> list[str]:
@@ -40,6 +43,7 @@ def _agent_meta() -> dict[str, Any]:
         "rebalance_freq": bt.get("rebalance_freq") or [],
         "default_impl": "agent_layer.impl.orchestrator",
         "swap_hint": "设置 AGENT_LAYER_IMPL 或修改 agent_layer/registry.py",
+        "llm": llm_status(),
     }
 
 
@@ -49,6 +53,26 @@ def get_agent_runtime():
 
 def list_presets() -> list[dict[str, str]]:
     return get_agent_runtime().list_presets()
+
+
+def get_factor_config_meta() -> dict[str, Any]:
+    return {**factor_config_meta(), "agent": llm_status()}
+
+
+def propose_agent_factor_config(
+    *, text: str | None = None, current_config: dict[str, Any] | None = None,
+    messages: list[dict[str, Any]] | None = None,
+    quick_preferences: dict[str, Any] | None = None,
+    mode: AgentMode = "mock",
+) -> dict[str, Any]:
+    """生成变更预览；数值最终始终经过后端配置校验。"""
+    return propose_with_factor_agent(
+        text=text,
+        current_config=current_config,
+        messages=messages,
+        quick_preferences=quick_preferences,
+        mode=mode,
+    )
 
 
 def plan_backtest(

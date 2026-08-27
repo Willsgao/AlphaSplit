@@ -31,15 +31,15 @@ class RiskControlModule:
         """
         参数:
             config: 风控配置
-                - max_single: 单股上限（默认5%）
-                - max_industry: 单行业上限（默认25%）
+                - max_single: 单股上限（默认10%）
+                - max_industry: 单行业上限（默认30%）
                 - stop_loss_stock: 个股止损线（默认-8%）
                 - stop_loss_monthly: 月度止损线（默认-5%）
                 - target_vol: 目标波动率（默认15%）
         """
         default_config = {
-            'max_single': 0.05,        # 单股上限5%
-            'max_industry': 0.25,      # 单行业上限25%
+            'max_single': 0.10,        # 10只持仓可在约束内达到满仓
+            'max_industry': 0.30,      # 默认分散到至少4个行业
             'stop_loss_stock': -0.08,  # 个股止损-8%
             'stop_loss_monthly': -0.05, # 月度止损-5%
             'target_vol': 0.15,        # 目标波动率15%
@@ -61,11 +61,9 @@ class RiskControlModule:
         
         for stock, weight in weights.items():
             adjusted[stock] = min(weight, max_single)
-        
-        # 重新归一化
-        total = sum(adjusted.values())
-        if total > 0:
-            adjusted = {s: w / total for s, w in adjusted.items()}
+
+        # 超限部分保留为现金。重新归一化会再次突破单股上限，
+        # 也会覆盖策略分析师此前设定的整体仓位。
         
         return adjusted
     
@@ -98,11 +96,98 @@ class RiskControlModule:
                     if industry_mapping.get(stock) == industry:
                         adjusted[stock] *= scale
         
-        # 重新归一化
-        total = sum(adjusted.values())
-        if total > 0:
-            adjusted = {s: w / total for s, w in adjusted.items()}
+        # 超限部分保留为现金，避免重新归一化后恢复行业超配。
         
+        return adjusted
+
+    @staticmethod
+    def _capped_proportional_allocation(
+        desired: Dict[str, float],
+        capacities: Dict[str, float],
+        target: float,
+    ) -> Dict[str, float]:
+        """按原始相对权重分配目标仓位，并以水位法执行容量上限。"""
+        keys = [key for key in desired if capacities.get(key, 0.0) > 0.0]
+        allocated = {key: 0.0 for key in desired}
+        remaining = min(max(0.0, target), sum(capacities.get(key, 0.0) for key in keys))
+        active = set(keys)
+
+        while active and remaining > 1e-12:
+            score_total = sum(max(0.0, desired[key]) for key in active)
+            if score_total <= 1e-12:
+                proposals = {key: remaining / len(active) for key in active}
+            else:
+                proposals = {
+                    key: remaining * max(0.0, desired[key]) / score_total
+                    for key in active
+                }
+
+            capped = []
+            for key, proposal in proposals.items():
+                capacity_left = capacities[key] - allocated[key]
+                if proposal >= capacity_left - 1e-12:
+                    addition = max(0.0, capacity_left)
+                    allocated[key] += addition
+                    remaining -= addition
+                    capped.append(key)
+
+            if not capped:
+                for key, proposal in proposals.items():
+                    allocated[key] += proposal
+                remaining = 0.0
+                break
+            active.difference_update(capped)
+
+        return allocated
+
+    def project_to_limits(
+        self,
+        weights: Dict[str, float],
+        industry_mapping: Dict[str, str],
+    ) -> Dict[str, float]:
+        """在单股和行业约束内尽量保留策略给定的总仓位。
+
+        与简单裁剪后整体归一化不同，本方法先在行业间、再在行业内按原始
+        相对权重做有上限的水位分配，因此不会突破任何上限。仅当现有持仓
+        的总容量不足时，无法分配的部分才保留为现金。
+        """
+        positive = {stock: max(0.0, float(weight)) for stock, weight in weights.items()}
+        if not positive:
+            return {}
+
+        target_exposure = min(1.0, sum(positive.values()))
+        max_single = float(self.config['max_single'])
+        max_industry = float(self.config['max_industry'])
+
+        industry_stocks: Dict[str, list[str]] = {}
+        for stock in positive:
+            industry = industry_mapping.get(stock, '未知')
+            industry_stocks.setdefault(industry, []).append(stock)
+
+        desired_by_industry = {
+            industry: sum(positive[stock] for stock in stocks)
+            for industry, stocks in industry_stocks.items()
+        }
+        capacity_by_industry = {
+            industry: min(max_industry, len(stocks) * max_single)
+            for industry, stocks in industry_stocks.items()
+        }
+        industry_allocations = self._capped_proportional_allocation(
+            desired_by_industry,
+            capacity_by_industry,
+            target_exposure,
+        )
+
+        adjusted = {stock: 0.0 for stock in positive}
+        for industry, stocks in industry_stocks.items():
+            stock_desired = {stock: positive[stock] for stock in stocks}
+            stock_capacity = {stock: max_single for stock in stocks}
+            stock_allocations = self._capped_proportional_allocation(
+                stock_desired,
+                stock_capacity,
+                industry_allocations[industry],
+            )
+            adjusted.update(stock_allocations)
         return adjusted
     
     def check_monthly_stop_loss(self, monthly_return: float) -> bool:
@@ -215,11 +300,8 @@ class RiskControlModule:
         返回:
             最终权重
         """
-        # 1. 单股上限
-        adjusted = self.apply_position_limits(weights)
-        
-        # 2. 行业上限
-        adjusted = self.apply_industry_limit(adjusted, industry_mapping)
+        # 1-2. 在单股/行业上限内投影，容量允许时保留策略设定的总仓位。
+        adjusted = self.project_to_limits(weights, industry_mapping)
         
         # 3. 止损
         adjusted = self.apply_stop_loss(adjusted, monthly_return)

@@ -50,7 +50,7 @@ def main() -> None:
 
     _print_header(f"场景: {scenario['scenario']['name']}")
     print(scenario["scenario"]["description"])
-    print(f"奖金池: ¥{params['profit']:,.0f}  平台份额: {params['platform_share']:.0%}")
+    print(f"资源池: {params['profit']:,.0f} 单位  平台份额: {params['platform_share']:.0%}")
 
     calc = calculate_once(
         contributors,

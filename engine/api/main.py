@@ -8,13 +8,15 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hmac
 import json
+import os
 import sys
 import threading
 from pathlib import Path
 from queue import Empty, Queue
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -28,6 +30,7 @@ from engine.agentic.negotiation import confirm_settlement, run_negotiation
 from engine.agentic.role_negotiation import confirm_role_settlement, run_role_negotiation
 from engine.api.models import (
     AgentInterpretRequest,
+    AgentFactorConfigRequest,
     AgentPipelineRequest,
     AgentPlanRequest,
     AttributionRequest,
@@ -44,6 +47,8 @@ from engine.integrations.agent_bridge import (
     interpret_backtest as agent_interpret,
     list_presets as agent_list_presets,
     plan_backtest as agent_plan,
+    get_factor_config_meta,
+    propose_agent_factor_config,
     run_agent_pipeline,
     _agent_meta as agent_meta_payload,
 )
@@ -76,6 +81,44 @@ app = FastAPI(
 )
 
 app.state.mode = "mock"
+_backtest_run_lock = threading.Lock()
+
+
+def _require_backtest_access(token: str | None) -> None:
+    """保护真实回测与历史结果；健康检查和官方演示包保持公开。"""
+    expected = os.getenv("ALPHASPLIT_API_TOKEN", "").strip()
+    demo_only = os.getenv("ALPHASPLIT_PUBLIC_DEMO_ONLY", "").strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+    if expected:
+        if token is None or not hmac.compare_digest(token, expected):
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "error_code": "UNAUTHORIZED",
+                    "error_message": "需要有效的 X-AlphaSplit-Token",
+                },
+            )
+        return
+    if demo_only:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error_code": "PUBLIC_DEMO_ONLY",
+                "error_message": "公开演示模式仅开放预计算演示包",
+            },
+        )
+
+
+def _acquire_backtest_slot() -> None:
+    if not _backtest_run_lock.acquire(blocking=False):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error_code": "BACKTEST_BUSY",
+                "error_message": "已有回测正在执行，请稍后重试",
+            },
+        )
 
 
 @app.get("/api/health")
@@ -89,6 +132,7 @@ def health():
             "endpoint": "/api/agent/plan",
             "pipeline_endpoint": "/api/agent/pipeline",
             "impl": agent_meta_payload().get("default_impl"),
+            "llm": agent_meta_payload().get("llm"),
         },
         "backtest_engine": {
             "available": data_available(),
@@ -260,6 +304,35 @@ def api_agent_presets():
     return {"status": "ok", "presets": agent_list_presets()}
 
 
+@app.get("/api/agent/factor-config")
+def api_agent_factor_config_meta():
+    """五角色默认因子配置与可调整因子元信息。"""
+    return {"status": "ok", **get_factor_config_meta()}
+
+
+@app.post("/api/agent/factor-config")
+def api_agent_factor_config(
+    body: AgentFactorConfigRequest,
+    x_alphasplit_token: str | None = Header(default=None, alias="X-AlphaSplit-Token"),
+):
+    """根据用户描述生成配置变更预览；不触发回测。"""
+    if body.mode == "llm":
+        _require_backtest_access(x_alphasplit_token)
+    try:
+        return {
+            "status": "ok",
+            **propose_agent_factor_config(
+                text=body.text,
+                current_config=body.current_config,
+                messages=body.messages,
+                quick_preferences=body.quick_preferences,
+                mode=body.mode,  # type: ignore[arg-type]
+            ),
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
 @app.post("/api/agent/plan")
 def api_agent_plan(body: AgentPlanRequest):
     try:
@@ -282,8 +355,13 @@ def api_agent_interpret(body: AgentInterpretRequest):
 
 
 @app.post("/api/agent/pipeline")
-def api_agent_pipeline(body: AgentPipelineRequest):
+def api_agent_pipeline(
+    body: AgentPipelineRequest,
+    x_alphasplit_token: str | None = Header(default=None, alias="X-AlphaSplit-Token"),
+):
     """Agent 规划 → 回测执行 → 解读（同步；前端流式回测请用 plan + /backtest/run/stream）。"""
+    _require_backtest_access(x_alphasplit_token)
+    _acquire_backtest_slot()
     try:
         result = run_agent_pipeline(
             text=body.text,
@@ -307,6 +385,8 @@ def api_agent_pipeline(body: AgentPipelineRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    finally:
+        _backtest_run_lock.release()
 
 
 @app.get("/api/backtest/meta")
@@ -332,14 +412,22 @@ def api_backtest_demo():
 
 
 @app.get("/api/backtest/results")
-def api_backtest_results(limit: int = Query(default=15, ge=1, le=50)):
+def api_backtest_results(
+    limit: int = Query(default=15, ge=1, le=50),
+    x_alphasplit_token: str | None = Header(default=None, alias="X-AlphaSplit-Token"),
+):
     """列出参数缓存与历史回测记录。"""
+    _require_backtest_access(x_alphasplit_token)
     return {"items": list_cached_results(limit=limit)}
 
 
 @app.get("/api/backtest/results/{request_id}")
-def api_backtest_result(request_id: str):
+def api_backtest_result(
+    request_id: str,
+    x_alphasplit_token: str | None = Header(default=None, alias="X-AlphaSplit-Token"),
+):
     """读取某次历史回测的 response.json。"""
+    _require_backtest_access(x_alphasplit_token)
     data = load_result_by_id(request_id)
     if not data:
         raise HTTPException(status_code=404, detail="未找到该回测结果")
@@ -362,7 +450,10 @@ def _backtest_run_options(body: BacktestRunRequest) -> dict[str, bool]:
 
 
 @app.post("/api/backtest/run")
-def api_backtest_run(body: BacktestRunRequest):
+def api_backtest_run(
+    body: BacktestRunRequest,
+    x_alphasplit_token: str | None = Header(default=None, alias="X-AlphaSplit-Token"),
+):
     """
     执行 HS300 多角色回测与 Shapley 归因（徐远交付引擎）。
 
@@ -370,9 +461,14 @@ def api_backtest_run(body: BacktestRunRequest):
       {"time_range": {"start_date": "2024-01-01", "end_date": "2024-06-30"},
        "benchmark": "hs300", "rebalance_freq": "monthly"}
     """
+    _require_backtest_access(x_alphasplit_token)
     payload = _strip_run_options(body.model_dump(exclude_none=True))
     opts = _backtest_run_options(body)
-    result = run_backtest_query(payload, **opts)
+    _acquire_backtest_slot()
+    try:
+        result = run_backtest_query(payload, **opts)
+    finally:
+        _backtest_run_lock.release()
     if result.get("status") == "error":
         code = result.get("error_code", "EXECUTION_ERROR")
         raise HTTPException(
@@ -387,10 +483,15 @@ def api_backtest_run(body: BacktestRunRequest):
 
 
 @app.post("/api/backtest/run/stream")
-async def api_backtest_run_stream(body: BacktestRunRequest):
+async def api_backtest_run_stream(
+    body: BacktestRunRequest,
+    x_alphasplit_token: str | None = Header(default=None, alias="X-AlphaSplit-Token"),
+):
     """SSE 流式回测：边执行边推送阶段进度与 Shapley 子集结果。"""
+    _require_backtest_access(x_alphasplit_token)
     payload = _strip_run_options(body.model_dump(exclude_none=True))
     opts = _backtest_run_options(body)
+    _acquire_backtest_slot()
 
     async def event_stream():
         q: Queue = Queue()
@@ -420,9 +521,15 @@ async def api_backtest_run_stream(body: BacktestRunRequest):
                         "error_message": str(exc),
                     }
                 )
+            finally:
+                _backtest_run_lock.release()
 
         thread = threading.Thread(target=worker, daemon=True)
-        thread.start()
+        try:
+            thread.start()
+        except Exception:
+            _backtest_run_lock.release()
+            raise
 
         while thread.is_alive() or not q.empty():
             try:

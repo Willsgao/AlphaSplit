@@ -5,6 +5,10 @@ __pycache__/
 *.pyc
 .idea/
 .env
+.env.*
+!.env.example
+secrets/
+*.pem
 .venv/
 venv/
 *.egg-info/
@@ -16,3 +20,4 @@ backtest/results/
 backtest/reports/
 .pytest_cache/
 data/processed/hs300_daily_all.csv
+docs/_review_doc_extract.txt

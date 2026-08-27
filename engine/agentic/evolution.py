@@ -4,9 +4,9 @@
 组别：
   - kpi:      传统 KPI——利润跟账户走，研究员拿固定小份额
   - formula:  纯贡献值公式
-  - agent:    协商 + 公式落账（满意度更高、波动更小）
+  - agent:    协商 + 公式建议（满意度更高、波动更小）
 
-说明：这是可控的机制对照实验，不是从真实奖金历史拟合的计量结果。
+说明：这是可控的机制对照实验，不是从真实资源分配历史拟合的计量结果。
 指标带轻量噪声，用于展示趋势稳定性。
 """
 from __future__ import annotations
@@ -129,7 +129,7 @@ def run_evolution(
         )
         series["formula"]["collab"].append(round(0.58 + 0.04 * math.sin(t / 10) + rng.uniform(-0.02, 0.02), 4))
 
-        # --- Agent：公式落账 + 协商降低主观不满意，波动更小 ---
+        # --- Agent：公式建议 + 协商降低主观不满意，波动更小 ---
         a_shares = []
         for name in names:
             # 向公式收敛，噪声更小

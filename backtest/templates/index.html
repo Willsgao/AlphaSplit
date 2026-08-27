@@ -392,7 +392,7 @@
                 <div class="download-actions">
                     <button class="btn-download" onclick="downloadJSON()">📥 下载结果JSON</button>
                     <button class="btn-download secondary" onclick="downloadAll()">📦 下载全部中间数据</button>
-                    <button class="btn-download" style="background: #e67e22;" onclick="showHRReport()">👔 查看HR报告</button>
+                    <button class="btn-download" style="background: #e67e22;" onclick="showHRReport()">查看治理报告</button>
                 </div>
                 <div style="margin-top: 15px;">
                     <details>
@@ -402,9 +402,9 @@
                 </div>
             </div>
             
-            <!-- HR报告 -->
+            <!-- 治理报告 -->
             <div class="result-card" id="hrReportCard" style="display: none;">
-                <div class="card-title">👔 HR友好版报告</div>
+                <div class="card-title">治理责任人友好版报告</div>
                 <div id="hrReportContent"></div>
             </div>
         </div>
@@ -602,7 +602,7 @@
                 document.getElementById('hrReportCard').scrollIntoView({ behavior: 'smooth' });
                 
             } catch (err) {
-                alert('获取HR报告失败: ' + err.message);
+                alert('获取治理报告失败: ' + err.message);
             }
         }
         
@@ -649,7 +649,7 @@
                             <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">角色</th>
                             <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">职责说明</th>
                             <th style="padding: 10px; border: 1px solid #ddd; text-align: left;">贡献情况</th>
-                            <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">奖金权重</th>
+                            <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">资源建议权重</th>
                         </tr>
                     </thead>
                     <tbody>`;
@@ -690,9 +690,9 @@
             
             html += `</tbody></table></div>`;
             
-            // 5. 奖金分配建议
+            // 5. 广义价值分配建议
             html += `<div style="margin-bottom: 20px;">
-                <h4 style="margin-bottom: 10px; color: #2c3e50;">💰 奖金分配建议</h4>
+                <h4 style="margin-bottom: 10px; color: #2c3e50;">广义价值分配建议</h4>
                 <div style="background: ${report.recommendation.startsWith('✅') ? '#d5f4e6' : '#fadbd8'}; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                     ${report.recommendation}
                 </div>`;

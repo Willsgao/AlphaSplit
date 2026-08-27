@@ -1,204 +1,518 @@
 {
-  "request_id": "web_1787472944461",
-  "timestamp": "2026-08-23T16:22:27.653768",
+  "request_id": "optimized_diversified_defensive_v4_20260827",
+  "timestamp": "2026-08-27T01:27:34.505484",
   "status": "success",
-  "query_summary": "2024-01-01~2024-06-30，所有角色，全行业，monthly调仓",
+  "query_summary": "2024-07-01~2025-06-30，所有角色，全行业，monthly调仓",
   "results": {
     "overview": {
-      "total_return": 0.21502164589125172,
-      "benchmark_return": 0,
-      "excess_return": 0,
-      "sharpe_ratio": 5.375622946965054,
-      "max_drawdown": -0.0024245015672430537,
+      "total_return": 0.22665945495458772,
+      "benchmark_return": 0.13704985469399067,
+      "excess_return": 0.08960960026059706,
+      "sharpe_ratio": 1.235432131504308,
+      "max_drawdown": -0.05894286889707623,
       "relative_contributions": {
-        "行业分析师": 0.5809995558394231,
-        "个股分析师": 0.1313221978988279,
-        "策略分析师": -0.014243993735881358,
-        "量化分析师": 0.16382630645959703,
-        "风控分析师": 0.1380959335380333
+        "行业分析师": 2.145771732824643,
+        "个股分析师": -0.586820126428295,
+        "策略分析师": 0.3329429120275366,
+        "量化分析师": -0.7665091880477779,
+        "风控分析师": -0.12538533037610677
       },
       "attribution_type": "shapley",
-      "attribution_description": "各角色Shapley贡献（带符号，和为全组合收益）",
-      "total_return_desc": "组合累计收益21.50%",
-      "benchmark_return_desc": "基准(沪深300)收益0.00%",
-      "excess_return_desc": "超额收益0.00%，跑输基准",
-      "max_drawdown_desc": "最大回撤-0.24%",
-      "sharpe_ratio_desc": "夏普比率5.38，风险调整后收益良好"
+      "attribution_description": "各角色Shapley贡献（带符号，和为全组合超额收益）",
+      "characteristic_function": "excess_return_vs_hs300",
+      "total_return_desc": "组合累计收益22.67%",
+      "benchmark_return_desc": "基准(沪深300)收益13.70%",
+      "excess_return_desc": "超额收益8.96%，跑赢基准",
+      "max_drawdown_desc": "最大回撤-5.89%",
+      "sharpe_ratio_desc": "夏普比率1.24，风险调整后收益良好"
     },
     "role_breakdown": [
       {
         "role": "行业分析师",
         "is_target": false,
-        "weight": 0.5347058913387385,
+        "weight": 0.5,
         "hr_weight": null,
-        "shapley_raw": 0.12492748075867897,
-        "contribution_raw": 0.12492748075867897,
-        "contribution": 0.12492748075867897,
-        "contribution_relative": 0.5809995558394231,
-        "contribution_pct": 0.5809995558394231,
-        "highlight": "Shapley贡献 +12.49%，权重 58.1%",
+        "shapley_raw": 0.19228174722890495,
+        "contribution_raw": 0.19228174722890495,
+        "contribution": 0.19228174722890495,
+        "contribution_relative": 2.145771732824643,
+        "contribution_pct": 2.145771732824643,
+        "highlight": "Shapley超额贡献 +19.23%，证据轨建议权重 50.0%",
         "performance": {
-          "cumulative_return": 0.21502164589125172,
-          "annual_return": 0.5958851594983992,
-          "annual_volatility": 0.10712900908043223,
-          "sharpe_ratio": 5.375622946965054,
-          "max_drawdown": -0.0024245015672430537,
-          "win_rate": 0.8
+          "cumulative_return": 0.22665945495458772,
+          "annual_return": 0.22665945495458772,
+          "annual_volatility": 0.16727706013518648,
+          "sharpe_ratio": 1.235432131504308,
+          "max_drawdown": -0.05894286889707623,
+          "win_rate": 0.5
         }
       },
       {
         "role": "个股分析师",
         "is_target": false,
-        "weight": 0.13654754111940048,
+        "weight": 0.0,
         "hr_weight": null,
-        "shapley_raw": 0.028237115134262657,
-        "contribution_raw": 0.028237115134262657,
-        "contribution": 0.028237115134262657,
-        "contribution_relative": 0.1313221978988279,
-        "contribution_pct": 0.1313221978988279,
-        "highlight": "Shapley贡献 +2.82%，权重 13.1%",
+        "shapley_raw": -0.05258471695411255,
+        "contribution_raw": -0.05258471695411255,
+        "contribution": -0.05258471695411255,
+        "contribution_relative": -0.586820126428295,
+        "contribution_pct": -0.586820126428295,
+        "highlight": "Shapley超额贡献 -5.26%（负贡献），证据轨建议权重 0.0%",
         "performance": {
-          "cumulative_return": 0.21502164589125172,
-          "annual_return": 0.5958851594983992,
-          "annual_volatility": 0.10712900908043223,
-          "sharpe_ratio": 5.375622946965054,
-          "max_drawdown": -0.0024245015672430537,
-          "win_rate": 0.8
+          "cumulative_return": 0.22665945495458772,
+          "annual_return": 0.22665945495458772,
+          "annual_volatility": 0.16727706013518648,
+          "sharpe_ratio": 1.235432131504308,
+          "max_drawdown": -0.05894286889707623,
+          "win_rate": 0.5
         }
       },
       {
         "role": "策略分析师",
         "is_target": false,
-        "weight": 0.014810765822341618,
+        "weight": 0.5,
         "hr_weight": null,
-        "shapley_raw": -0.0030627669771538892,
-        "contribution_raw": -0.0030627669771538892,
-        "contribution": -0.0030627669771538892,
-        "contribution_relative": -0.014243993735881358,
-        "contribution_pct": -0.014243993735881358,
-        "highlight": "Shapley贡献 -0.31%（负贡献），权重 -1.4%",
+        "shapley_raw": 0.02983488125638669,
+        "contribution_raw": 0.02983488125638669,
+        "contribution": 0.02983488125638669,
+        "contribution_relative": 0.3329429120275366,
+        "contribution_pct": 0.3329429120275366,
+        "highlight": "Shapley超额贡献 +2.98%，证据轨建议权重 50.0%",
         "performance": {
-          "cumulative_return": 0.21502164589125172,
-          "annual_return": 0.5958851594983992,
-          "annual_volatility": 0.10712900908043223,
-          "sharpe_ratio": 5.375622946965054,
-          "max_drawdown": -0.0024245015672430537,
-          "win_rate": 0.8
+          "cumulative_return": 0.22665945495458772,
+          "annual_return": 0.22665945495458772,
+          "annual_volatility": 0.16727706013518648,
+          "sharpe_ratio": 1.235432131504308,
+          "max_drawdown": -0.05894286889707623,
+          "win_rate": 0.5
         }
       },
       {
         "role": "量化分析师",
         "is_target": false,
-        "weight": 0.1703449963193998,
+        "weight": 0.0,
         "hr_weight": null,
-        "shapley_raw": 0.03522620205522716,
-        "contribution_raw": 0.03522620205522716,
-        "contribution": 0.03522620205522716,
-        "contribution_relative": 0.16382630645959703,
-        "contribution_pct": 0.16382630645959703,
-        "highlight": "Shapley贡献 +3.52%，权重 16.4%",
+        "shapley_raw": -0.06868658193703621,
+        "contribution_raw": -0.06868658193703621,
+        "contribution": -0.06868658193703621,
+        "contribution_relative": -0.7665091880477779,
+        "contribution_pct": -0.7665091880477779,
+        "highlight": "Shapley超额贡献 -6.87%（负贡献），证据轨建议权重 0.0%",
         "performance": {
-          "cumulative_return": 0.21502164589125172,
-          "annual_return": 0.5958851594983992,
-          "annual_volatility": 0.10712900908043223,
-          "sharpe_ratio": 5.375622946965054,
-          "max_drawdown": -0.0024245015672430537,
-          "win_rate": 0.8
+          "cumulative_return": 0.22665945495458772,
+          "annual_return": 0.22665945495458772,
+          "annual_volatility": 0.16727706013518648,
+          "sharpe_ratio": 1.235432131504308,
+          "max_drawdown": -0.05894286889707623,
+          "win_rate": 0.5
         }
       },
       {
         "role": "风控分析师",
         "is_target": false,
-        "weight": 0.14359080540011965,
+        "weight": 0.0,
         "hr_weight": null,
-        "shapley_raw": 0.029693614920236828,
-        "contribution_raw": 0.029693614920236828,
-        "contribution": 0.029693614920236828,
-        "contribution_relative": 0.1380959335380333,
-        "contribution_pct": 0.1380959335380333,
-        "highlight": "Shapley贡献 +2.97%，权重 13.8%",
+        "shapley_raw": -0.011235729333545828,
+        "contribution_raw": -0.011235729333545828,
+        "contribution": -0.011235729333545828,
+        "contribution_relative": -0.12538533037610677,
+        "contribution_pct": -0.12538533037610677,
+        "highlight": "Shapley超额贡献 -1.12%（负贡献），证据轨建议权重 0.0%",
         "performance": {
-          "cumulative_return": 0.21502164589125172,
-          "annual_return": 0.5958851594983992,
-          "annual_volatility": 0.10712900908043223,
-          "sharpe_ratio": 5.375622946965054,
-          "max_drawdown": -0.0024245015672430537,
-          "win_rate": 0.8
+          "cumulative_return": 0.22665945495458772,
+          "annual_return": 0.22665945495458772,
+          "annual_volatility": 0.16727706013518648,
+          "sharpe_ratio": 1.235432131504308,
+          "max_drawdown": -0.05894286889707623,
+          "win_rate": 0.5
         }
       }
     ],
     "role_ranking": [
       "行业分析师",
-      "量化分析师",
+      "策略分析师",
       "风控分析师",
       "个股分析师",
-      "策略分析师"
+      "量化分析师"
     ],
-    "role_ranking_desc": "行业分析师 > 量化分析师 > 风控分析师 > 个股分析师 > 策略分析师",
+    "role_ranking_desc": "行业分析师 > 策略分析师 > 风控分析师 > 个股分析师 > 量化分析师",
     "target_role": null,
     "highlights": [
       {
         "type": "positive",
-        "text": "行业分析师贡献最大（+12.49%），是组合收益的主要来源"
+        "text": "行业分析师贡献最大（+19.23%），是组合收益的主要来源"
       },
       {
         "type": "negative",
-        "text": "策略分析师贡献为负（-0.31%），拖累组合表现，建议重点复盘"
+        "text": "量化分析师贡献为负（-6.87%），拖累组合表现，建议重点复盘"
       },
       {
-        "type": "warning",
-        "text": "组合跑输基准0.00%，主动管理未跑赢"
+        "type": "info",
+        "text": "组合跑赢基准8.96%，主动管理整体有效"
       }
     ],
     "recommendation": {
-      "summary": "超额收益0.00%，跑输基准，建议新池40%按贡献分配，行业分析师分配最高（53.5%）",
-      "focus": "重点复盘策略分析师（贡献-0.31%），其负贡献主要拖累组合",
-      "role_weights_impact": "若HR调整某角色权重（新池内调节系数），其分配占比将相应变化"
+      "summary": "超额收益8.96%，跑赢基准，建议证据轨40%按贡献形成权重，行业分析师建议权重最高（50.0%）",
+      "focus": "重点复盘量化分析师（贡献-6.87%），其负贡献主要拖累组合",
+      "role_weights_impact": "若制度侧调整某角色系数，其证据轨建议权重将相应变化"
     },
     "filter_detail": {
       "industry": null,
       "benchmark": "hs300",
       "rebalance_freq": "monthly"
     },
+    "allocation_policy": {
+      "method": "positive_shapley_capped",
+      "negative_contribution_rewarded": false,
+      "configured_max_role_weight": 0.5,
+      "effective_max_role_weight": 0.5,
+      "cap_relaxed": false,
+      "fallback_equal_weight": false,
+      "hr_multiplier_enabled": false,
+      "neutral_selection": "deterministic_hash_v1"
+    },
+    "factor_config": {
+      "config_id": "diversified_defensive_v4",
+      "version": 4,
+      "provenance": {
+        "source": "default",
+        "model": null,
+        "confirmed_at": null
+      },
+      "roles": {
+        "行业分析师": {
+          "enabled": true,
+          "factor_weights": {
+            "ind_momentum_5d": 0.125,
+            "ind_momentum_10d": 0.125,
+            "ind_sma_gap_5d": 0.125,
+            "ind_sma_slope_5d": 0.125,
+            "ind_trend_5d": 0.125,
+            "ind_efficiency_5d": 0.125,
+            "ind_breakout_5d": 0.125,
+            "ind_range_pos_5d": 0.125
+          },
+          "module_params": {
+            "top_industries": 4
+          }
+        },
+        "个股分析师": {
+          "enabled": true,
+          "factor_weights": {
+            "stk_reversal_5d": 0.125,
+            "stk_reversal_10d": 0.125,
+            "stk_rsi_5d": 0.125,
+            "stk_rsi_rev_5d": 0.125,
+            "stk_stoch_5d": 0.125,
+            "stk_drawdown_5d": 0.125,
+            "stk_lower_wick_5d": 0.125,
+            "stk_breakdown_5d": 0.125
+          },
+          "module_params": {}
+        },
+        "策略分析师": {
+          "enabled": true,
+          "factor_weights": {
+            "str_skip_ret_10d": 0.125,
+            "str_gap_sum_5d": 0.125,
+            "str_intraday_5d": 0.125,
+            "str_rvol_5d": 0.125,
+            "str_atr_5d": 0.125,
+            "str_range_5d": 0.125,
+            "str_skew_5d": 0.125,
+            "str_kurt_5d": 0.125
+          },
+          "module_params": {
+            "target_vol": 0.15,
+            "lookback": 20,
+            "defensive_position_cap": 0.5
+          }
+        },
+        "量化分析师": {
+          "enabled": true,
+          "factor_weights": {
+            "quant_vol_ratio_5d": 0.125,
+            "quant_vol_z_5d": 0.125,
+            "quant_dollar_5d": 0.125,
+            "quant_pv_corr_5d": 0.125,
+            "quant_obv_5d": 0.125,
+            "quant_ts_close_5d": 0.125,
+            "quant_ts_vol_5d": 0.125,
+            "quant_down_vol_5d": 0.125
+          },
+          "module_params": {}
+        },
+        "风控分析师": {
+          "enabled": true,
+          "factor_weights": {
+            "risk_rvol_5d": 0.125,
+            "risk_rvol_10d": 0.125,
+            "risk_down_vol_5d": 0.125,
+            "risk_atr_5d": 0.125,
+            "risk_range_5d": 0.125,
+            "risk_drawdown_5d": 0.125,
+            "risk_skew_5d": 0.125,
+            "risk_kurt_5d": 0.125
+          },
+          "module_params": {
+            "max_single": 0.1,
+            "max_industry": 0.3,
+            "stop_loss_monthly": -0.05
+          }
+        }
+      }
+    },
     "time_series": [
       {
-        "period": "2024-02",
-        "return": 0.07144524918982831,
-        "benchmark": 0.09352947579579296,
-        "excess": -0.022084226605964652
+        "period": "2024-07",
+        "return": 0.013959610563587965,
+        "benchmark": -0.005656245847368013,
+        "excess": 0.01961585641095598
       },
       {
-        "period": "2024-03",
-        "return": -0.0024245015672430537,
-        "benchmark": 0.006086323405611216,
-        "excess": -0.00851082497285427
+        "period": "2024-08",
+        "return": -0.03008930488916317,
+        "benchmark": -0.03505148050016227,
+        "excess": 0.004962175610999098
       },
       {
-        "period": "2024-04",
-        "return": 0.02332118253036275,
-        "benchmark": 0.018914594570145882,
-        "excess": 0.004406587960216868
+        "period": "2024-09",
+        "return": 0.11501261983542399,
+        "benchmark": 0.20967474852698942,
+        "excess": -0.09466212869156543
       },
       {
-        "period": "2024-05",
-        "return": 0.04057238313504907,
-        "benchmark": -0.006788943482808674,
-        "excess": 0.047361326617857746
+        "period": "2024-10",
+        "return": 0.03895936292824631,
+        "benchmark": -0.031561656109610814,
+        "excess": 0.07052101903785712
       },
       {
-        "period": "2024-06",
-        "return": 0.06753961026762134,
-        "benchmark": -0.033034257748776885,
-        "excess": 0.10057386801639823
+        "period": "2024-11",
+        "return": 0.019972590281252867,
+        "benchmark": 0.006563797853529785,
+        "excess": 0.013408792427723082
+      },
+      {
+        "period": "2024-12",
+        "return": 0.00922517181400373,
+        "benchmark": 0.004680103559738358,
+        "excess": 0.004545068254265372
+      },
+      {
+        "period": "2025-01",
+        "return": -0.012562586672483111,
+        "benchmark": -0.02994477637353865,
+        "excess": 0.01738218970105554
+      },
+      {
+        "period": "2025-02",
+        "return": -0.009455991846092138,
+        "benchmark": 0.01911670701164292,
+        "excess": -0.028572698857735057
+      },
+      {
+        "period": "2025-03",
+        "return": -0.01972969841384431,
+        "benchmark": -0.0007043611264636596,
+        "excess": -0.01902533728738065
+      },
+      {
+        "period": "2025-04",
+        "return": -0.004217993269795661,
+        "benchmark": -0.030031049749054906,
+        "excess": 0.025813056479259244
+      },
+      {
+        "period": "2025-05",
+        "return": -0.014350475945264063,
+        "benchmark": 0.01847466032987044,
+        "excess": -0.0328251362751345
+      },
+      {
+        "period": "2025-06",
+        "return": 0.11147755554128125,
+        "benchmark": 0.024959442533389886,
+        "excess": 0.08651811300789136
+      }
+    ],
+    "portfolio_diagnostics": [
+      {
+        "month": "2024-07",
+        "selected_industries": [
+          "银行",
+          "银行Ⅱ",
+          "基础建设",
+          "通信"
+        ],
+        "stock_count": 10,
+        "gross_exposure": 0.4999999999999999,
+        "position_ratio": 0.5,
+        "turnover": 0.4999999999999999,
+        "transaction_cost": 0.0009999999999999998
+      },
+      {
+        "month": "2024-08",
+        "selected_industries": [
+          "证券Ⅱ",
+          "软件开发",
+          "非银金融",
+          "计算机"
+        ],
+        "stock_count": 10,
+        "gross_exposure": 0.4999999999999999,
+        "position_ratio": 0.5,
+        "turnover": 0.5000000000000001,
+        "transaction_cost": 0.0010000000000000002
+      },
+      {
+        "month": "2024-09",
+        "selected_industries": [
+          "半导体",
+          "非银金融",
+          "能源金属",
+          "消费电子"
+        ],
+        "stock_count": 10,
+        "gross_exposure": 0.4999999999999999,
+        "position_ratio": 0.5,
+        "turnover": 0.45000000000000007,
+        "transaction_cost": 0.0009000000000000002
+      },
+      {
+        "month": "2024-10",
+        "selected_industries": [
+          "半导体",
+          "电子",
+          "电池",
+          "计算机"
+        ],
+        "stock_count": 10,
+        "gross_exposure": 0.39999999999999997,
+        "position_ratio": 1.0,
+        "turnover": 0.4666666666666666,
+        "transaction_cost": 0.0009333333333333332
+      },
+      {
+        "month": "2024-11",
+        "selected_industries": [
+          "航空机场",
+          "消费电子",
+          "电子",
+          "计算机"
+        ],
+        "stock_count": 10,
+        "gross_exposure": 0.7999999999999999,
+        "position_ratio": 1.0,
+        "turnover": 0.7,
+        "transaction_cost": 0.0014
+      },
+      {
+        "month": "2024-12",
+        "selected_industries": [
+          "光伏设备",
+          "银行Ⅱ",
+          "半导体",
+          "银行"
+        ],
+        "stock_count": 10,
+        "gross_exposure": 0.6000000000000001,
+        "position_ratio": 1.0,
+        "turnover": 0.8,
+        "transaction_cost": 0.0016
+      },
+      {
+        "month": "2025-01",
+        "selected_industries": [
+          "国防军工",
+          "电网设备",
+          "煤炭",
+          "银行Ⅱ"
+        ],
+        "stock_count": 10,
+        "gross_exposure": 0.49999999999999994,
+        "position_ratio": 0.5,
+        "turnover": 0.6000000000000001,
+        "transaction_cost": 0.0012000000000000001
+      },
+      {
+        "month": "2025-02",
+        "selected_industries": [
+          "电力",
+          "银行Ⅱ",
+          "银行",
+          "公用事业"
+        ],
+        "stock_count": 10,
+        "gross_exposure": 0.49999999999999994,
+        "position_ratio": 0.5,
+        "turnover": 0.5000000000000002,
+        "transaction_cost": 0.0010000000000000005
+      },
+      {
+        "month": "2025-03",
+        "selected_industries": [
+          "航空机场",
+          "光伏设备",
+          "基础建设",
+          "食品饮料"
+        ],
+        "stock_count": 10,
+        "gross_exposure": 0.9999999999999999,
+        "position_ratio": 1.0,
+        "turnover": 1.0000000000000002,
+        "transaction_cost": 0.0020000000000000005
+      },
+      {
+        "month": "2025-04",
+        "selected_industries": [
+          "医药生物",
+          "银行",
+          "银行Ⅱ",
+          "汽车"
+        ],
+        "stock_count": 10,
+        "gross_exposure": 0.4999999999999999,
+        "position_ratio": 0.5,
+        "turnover": 1.0000000000000002,
+        "transaction_cost": 0.0020000000000000005
+      },
+      {
+        "month": "2025-05",
+        "selected_industries": [
+          "半导体",
+          "电子",
+          "消费电子",
+          "软件开发"
+        ],
+        "stock_count": 10,
+        "gross_exposure": 0.5,
+        "position_ratio": 0.5,
+        "turnover": 0.5,
+        "transaction_cost": 0.001
+      },
+      {
+        "month": "2025-06",
+        "selected_industries": [
+          "半导体",
+          "银行Ⅱ",
+          "元件",
+          "交通运输"
+        ],
+        "stock_count": 10,
+        "gross_exposure": 0.8999999999999999,
+        "position_ratio": 1.0,
+        "turnover": 0.8571428571428572,
+        "transaction_cost": 0.0017142857142857144
       }
     ]
   },
-  "demo_id": "roadshow_hs300_2024h1",
-  "demo_label": "路演官方演示 · 2024上半年 HS300 五角色",
+  "demo_id": "roadshow_hs300_20240701_20250630_comparison",
+  "demo_label": "路演官方演示 · 新策略 / 默认策略 / HS300 三方对照",
   "query": {
     "time_range": {
-      "start_date": "2024-01-01",
-      "end_date": "2024-06-30"
+      "start_date": "2024-07-01",
+      "end_date": "2025-06-30"
     },
     "industry": null,
     "benchmark": "hs300",
@@ -207,104 +521,139 @@
     "target_role": null
   },
   "demo_replay": {
-    "stocks": 300,
-    "trading_days": 121,
-    "pipeline_return": 0.21502164589125172,
+    "stocks": 298,
+    "trading_days": 241,
+    "pipeline_return": 0.22665945495458772,
     "pipeline_monthly": [
       {
-        "month": "2024-02",
-        "return": 0.07144524918982831,
-        "cumulative": 0.07144524918982831
+        "month": "2024-07",
+        "return": 0.013959610563587965,
+        "cumulative": 0.013959610563587965
       },
       {
-        "month": "2024-03",
-        "return": -0.0024245015672430537,
-        "cumulative": 0.06884752850395248
+        "month": "2024-08",
+        "return": -0.03008930488916317,
+        "cumulative": -0.01654972930395704
       },
       {
-        "month": "2024-04",
-        "return": 0.02332118253036275,
-        "cumulative": 0.09377431681332027
+        "month": "2024-09",
+        "return": 0.11501261983542399,
+        "cumulative": 0.09655946280665173
       },
       {
-        "month": "2024-05",
-        "return": 0.04057238313504907,
-        "cumulative": 0.1381513474583469
+        "month": "2024-10",
+        "return": 0.03895936292824631,
+        "cumulative": 0.1392807208905389
       },
       {
-        "month": "2024-06",
-        "return": 0.06753961026762134,
-        "cumulative": 0.21502164589125172
+        "month": "2024-11",
+        "return": 0.019972590281252867,
+        "cumulative": 0.16203510794421594
+      },
+      {
+        "month": "2024-12",
+        "return": 0.00922517181400373,
+        "cumulative": 0.1727550814689056
+      },
+      {
+        "month": "2025-01",
+        "return": -0.012562586672483111,
+        "cumulative": 0.15802224411235755
+      },
+      {
+        "month": "2025-02",
+        "return": -0.009455991846092138,
+        "cumulative": 0.1470719952144377
+      },
+      {
+        "month": "2025-03",
+        "return": -0.01972969841384431,
+        "cumulative": 0.1244406106898901
+      },
+      {
+        "month": "2025-04",
+        "return": -0.004217993269795661,
+        "cumulative": 0.11969772776171528
+      },
+      {
+        "month": "2025-05",
+        "return": -0.014350475945264063,
+        "cumulative": 0.10362953245350393
+      },
+      {
+        "month": "2025-06",
+        "return": 0.11147755554128125,
+        "cumulative": 0.22665945495458772
       }
     ],
     "roles": {
       "行业分析师": {
-        "months": 6,
+        "months": 12,
         "sample": [
-          "601728",
-          "601916",
-          "601077"
+          "600196",
+          "688506",
+          "300498"
         ],
         "sample_labels": [
-          "中国电信（601728）",
-          "浙商银行（601916）",
-          "渝农商行（601077）"
+          "复星医药（600196）",
+          "百利天恒（688506）",
+          "温氏股份（300498）"
         ],
         "done": true
       },
       "个股分析师": {
-        "months": 6,
+        "months": 12,
         "sample": [
-          "600221",
-          "601898",
-          "601088"
+          "601995",
+          "601688",
+          "601336"
         ],
         "sample_labels": [
-          "海航控股（600221）",
-          "中煤能源（601898）",
-          "中国神华（601088）"
+          "中金公司（601995）",
+          "华泰证券（601688）",
+          "新华保险（601336）"
         ],
         "done": true
       },
       "策略分析师": {
-        "months": 6,
+        "months": 12,
         "sample": [
-          "300033",
-          "601857",
-          "302132"
+          "688521",
+          "600048",
+          "601006"
         ],
         "sample_labels": [
-          "同花顺（300033）",
-          "中国石油（601857）",
-          "中航成飞（302132）"
+          "芯原股份（688521）",
+          "保利发展（600048）",
+          "大秦铁路（601006）"
         ],
         "done": true
       },
       "量化分析师": {
-        "months": 6,
+        "months": 12,
         "sample": [
-          "600010",
-          "600150",
-          "601600"
+          "300498",
+          "688506",
+          "600018"
         ],
         "sample_labels": [
-          "包钢股份（600010）",
-          "中国船舶（600150）",
-          "中国铝业（601600）"
+          "温氏股份（300498）",
+          "百利天恒（688506）",
+          "上港集团（600018）"
         ],
         "done": true
       },
       "风控分析师": {
-        "months": 6,
+        "months": 12,
         "sample": [
-          "600372",
-          "300033",
-          "300059"
+          "300274",
+          "601618",
+          "601669"
         ],
         "sample_labels": [
-          "中航机载（600372）",
-          "同花顺（300033）",
-          "东方财富（300059）"
+          "阳光电源（300274）",
+          "中国中冶（601618）",
+          "中国电建（601669）"
         ],
         "done": true
       }
@@ -324,7 +673,8 @@
         ],
         "label": "行业",
         "fullLabel": "行业分析师",
-        "y": 12.49
+        "y": 19.23,
+        "metric": "角色Shapley超额贡献"
       },
       {
         "index": 2,
@@ -333,7 +683,8 @@
         ],
         "label": "个股",
         "fullLabel": "个股分析师",
-        "y": 2.82
+        "y": -5.26,
+        "metric": "角色Shapley超额贡献"
       },
       {
         "index": 3,
@@ -342,7 +693,8 @@
         ],
         "label": "策略",
         "fullLabel": "策略分析师",
-        "y": -0.31
+        "y": 2.98,
+        "metric": "角色Shapley超额贡献"
       },
       {
         "index": 4,
@@ -351,7 +703,8 @@
         ],
         "label": "量化",
         "fullLabel": "量化分析师",
-        "y": 3.52
+        "y": -6.87,
+        "metric": "角色Shapley超额贡献"
       },
       {
         "index": 5,
@@ -360,8 +713,215 @@
         ],
         "label": "风控",
         "fullLabel": "风控分析师",
-        "y": 2.97
+        "y": -1.12,
+        "metric": "角色Shapley超额贡献"
       }
     ]
+  },
+  "comparison": {
+    "loading": false,
+    "source": "precomputed_verified_pair",
+    "customer": {
+      "total_return": 0.22665945495458772,
+      "benchmark_return": 0.13704985469399067,
+      "excess_return": 0.08960960026059706,
+      "sharpe_ratio": 1.235432131504308,
+      "max_drawdown": -0.05894286889707623,
+      "relative_contributions": {
+        "行业分析师": 2.145771732824643,
+        "个股分析师": -0.586820126428295,
+        "策略分析师": 0.3329429120275366,
+        "量化分析师": -0.7665091880477779,
+        "风控分析师": -0.12538533037610677
+      },
+      "attribution_type": "shapley",
+      "attribution_description": "各角色Shapley贡献（带符号，和为全组合超额收益）",
+      "characteristic_function": "excess_return_vs_hs300",
+      "total_return_desc": "组合累计收益22.67%",
+      "benchmark_return_desc": "基准(沪深300)收益13.70%",
+      "excess_return_desc": "超额收益8.96%，跑赢基准",
+      "max_drawdown_desc": "最大回撤-5.89%",
+      "sharpe_ratio_desc": "夏普比率1.24，风险调整后收益良好"
+    },
+    "default": {
+      "total_return": 0.09298524703533784,
+      "benchmark_return": 0.13704985469399067,
+      "excess_return": -0.04406460765865283,
+      "sharpe_ratio": 0.5435784031657077,
+      "max_drawdown": -0.0910422211706351,
+      "relative_contributions": {
+        "行业分析师": -1.3054684989814538,
+        "个股分析师": 0.33130937197554816,
+        "策略分析师": -0.2059286990698901,
+        "量化分析师": 1.3488994963315255,
+        "风控分析师": 0.83118832974427
+      },
+      "attribution_type": "shapley",
+      "attribution_description": "各角色Shapley贡献（带符号，和为全组合超额收益）",
+      "characteristic_function": "excess_return_vs_hs300",
+      "total_return_desc": "组合累计收益9.30%",
+      "benchmark_return_desc": "基准(沪深300)收益13.70%",
+      "excess_return_desc": "超额收益-4.41%，跑输基准",
+      "max_drawdown_desc": "最大回撤-9.10%",
+      "sharpe_ratio_desc": "夏普比率0.54，风险调整后收益一般"
+    },
+    "benchmark": {
+      "total_return": 0.13704985469399067,
+      "sharpe_ratio": 0.51405668741486,
+      "max_drawdown": -0.06154535385840676
+    },
+    "customer_time_series": [
+      {
+        "period": "2024-07",
+        "return": 0.013959610563587965,
+        "benchmark": -0.005656245847368013,
+        "excess": 0.01961585641095598
+      },
+      {
+        "period": "2024-08",
+        "return": -0.03008930488916317,
+        "benchmark": -0.03505148050016227,
+        "excess": 0.004962175610999098
+      },
+      {
+        "period": "2024-09",
+        "return": 0.11501261983542399,
+        "benchmark": 0.20967474852698942,
+        "excess": -0.09466212869156543
+      },
+      {
+        "period": "2024-10",
+        "return": 0.03895936292824631,
+        "benchmark": -0.031561656109610814,
+        "excess": 0.07052101903785712
+      },
+      {
+        "period": "2024-11",
+        "return": 0.019972590281252867,
+        "benchmark": 0.006563797853529785,
+        "excess": 0.013408792427723082
+      },
+      {
+        "period": "2024-12",
+        "return": 0.00922517181400373,
+        "benchmark": 0.004680103559738358,
+        "excess": 0.004545068254265372
+      },
+      {
+        "period": "2025-01",
+        "return": -0.012562586672483111,
+        "benchmark": -0.02994477637353865,
+        "excess": 0.01738218970105554
+      },
+      {
+        "period": "2025-02",
+        "return": -0.009455991846092138,
+        "benchmark": 0.01911670701164292,
+        "excess": -0.028572698857735057
+      },
+      {
+        "period": "2025-03",
+        "return": -0.01972969841384431,
+        "benchmark": -0.0007043611264636596,
+        "excess": -0.01902533728738065
+      },
+      {
+        "period": "2025-04",
+        "return": -0.004217993269795661,
+        "benchmark": -0.030031049749054906,
+        "excess": 0.025813056479259244
+      },
+      {
+        "period": "2025-05",
+        "return": -0.014350475945264063,
+        "benchmark": 0.01847466032987044,
+        "excess": -0.0328251362751345
+      },
+      {
+        "period": "2025-06",
+        "return": 0.11147755554128125,
+        "benchmark": 0.024959442533389886,
+        "excess": 0.08651811300789136
+      }
+    ],
+    "default_time_series": [
+      {
+        "period": "2024-07",
+        "return": 0.014025574237690241,
+        "benchmark": -0.005656245847368013,
+        "excess": 0.019681820085058255
+      },
+      {
+        "period": "2024-08",
+        "return": -0.01583805617230294,
+        "benchmark": -0.03505148050016227,
+        "excess": 0.01921342432785933
+      },
+      {
+        "period": "2024-09",
+        "return": 0.10196530664845516,
+        "benchmark": 0.20967474852698942,
+        "excess": -0.10770944187853426
+      },
+      {
+        "period": "2024-10",
+        "return": 0.0346243963018229,
+        "benchmark": -0.031561656109610814,
+        "excess": 0.06618605241143372
+      },
+      {
+        "period": "2024-11",
+        "return": -0.008174240729975968,
+        "benchmark": 0.006563797853529785,
+        "excess": -0.014738038583505753
+      },
+      {
+        "period": "2024-12",
+        "return": -0.007709896800861427,
+        "benchmark": 0.004680103559738358,
+        "excess": -0.012390000360599784
+      },
+      {
+        "period": "2025-01",
+        "return": -0.03125745386607115,
+        "benchmark": -0.02994477637353865,
+        "excess": -0.001312677492532499
+      },
+      {
+        "period": "2025-02",
+        "return": -0.011453936874535553,
+        "benchmark": 0.01911670701164292,
+        "excess": -0.030570643886178472
+      },
+      {
+        "period": "2025-03",
+        "return": -0.02347334952900426,
+        "benchmark": -0.0007043611264636596,
+        "excess": -0.022768988402540602
+      },
+      {
+        "period": "2025-04",
+        "return": 0.0032621778862660378,
+        "benchmark": -0.030031049749054906,
+        "excess": 0.03329322763532094
+      },
+      {
+        "period": "2025-05",
+        "return": -0.015613061757064117,
+        "benchmark": 0.01847466032987044,
+        "excess": -0.03408772208693456
+      },
+      {
+        "period": "2025-06",
+        "return": 0.0568284036118607,
+        "benchmark": 0.024959442533389886,
+        "excess": 0.031868961078470814
+      }
+    ],
+    "customer_config_id": "diversified_defensive_v4",
+    "default_config_id": "legacy_strict_baseline_v4",
+    "customer_request_id": "optimized_diversified_defensive_v4_20260827",
+    "default_request_id": "baseline_strict_v4_20260827",
+    "same_scope": true
   }
 }

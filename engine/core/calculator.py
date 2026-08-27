@@ -107,7 +107,7 @@ def calculate_once(
     apply_platform_deduction: bool = True,
 ) -> dict[str, Any]:
     """
-    单次利润/奖金池分配。
+    单次价值池/资源池分配。
 
     profit: 若 apply_platform_deduction=True，视为总额，先扣平台份额；
             否则视为已扣除后的可分配池。

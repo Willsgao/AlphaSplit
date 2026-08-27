@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 from typing import Dict, List, Tuple
 from quant_engine import compute_factor, ROLE_FACTORS
+from factor_config import factor_direction
 
 
 # 预定义的专业因子权重组合（8套）
@@ -74,7 +75,8 @@ class QuantAnalyst:
     def optimize_selection(self, df_daily: pd.DataFrame, 
                            stocks: List[str],
                            role: str,
-                           top_n: int = 10) -> Tuple[List[str], Dict[str, float]]:
+                           top_n: int = 10,
+                           factor_weights: Dict[str, float] | None = None) -> Tuple[List[str], Dict[str, float]]:
         """
         优化选股：使用多策略平均排名
         
@@ -91,6 +93,15 @@ class QuantAnalyst:
             return stocks[:top_n], {}
         
         factor_defs = ROLE_FACTORS[role]
+
+        stock_set = {str(stock) for stock in stocks}
+        source = df_daily.copy()
+        source["symbol"] = source["symbol"].astype(str)
+        source = source[source["symbol"].isin(stock_set)]
+        stock_groups = {
+            symbol: group.copy()
+            for symbol, group in source.groupby("symbol", sort=False)
+        }
         
         # 计算所有因子
         all_factor_dfs = []
@@ -99,8 +110,8 @@ class QuantAnalyst:
             factor_results = []
             
             for sym in stocks:
-                stock_df = df_daily[df_daily["symbol"] == sym].copy()
-                if len(stock_df) < 30:
+                stock_df = stock_groups.get(str(sym))
+                if stock_df is None or len(stock_df) < 30:
                     continue
                 try:
                     result = compute_factor(
@@ -139,6 +150,14 @@ class QuantAnalyst:
         
         for i in range(self.n_strategies):
             weights = QUANT_STRATEGIES[i]
+            if factor_weights:
+                adjusted = {
+                    col: value * max(0.0, float(factor_weights.get(col, 0.0)))
+                    for col, value in weights.items()
+                }
+                total = sum(adjusted.values())
+                weights = ({col: value / total for col, value in adjusted.items()}
+                           if total > 0 else weights)
             
             # 计算加权综合得分
             score_col = f"score_{i}"
@@ -147,7 +166,7 @@ class QuantAnalyst:
                 if col in weights:
                     # 用排名代替原始值（更稳健）
                     rank_col = f"rank_{col}"
-                    latest[rank_col] = latest[col].rank(pct=True)
+                    latest[rank_col] = (latest[col] * factor_direction(col)).rank(pct=True)
                     latest[score_col] += latest[rank_col] * weights[col]
             
             # 计算排名（越高越好）

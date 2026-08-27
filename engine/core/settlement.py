@@ -1,5 +1,5 @@
 """
-落账规则：公式锚点 + 带宽协商 + 人工确认。
+方案确认规则：公式锚点 + 带宽协商 + 人工确认。
 
 - formula_share：可审计锚点
 - band：每人允许偏离锚点的幅度（默认 ±5 个百分点，即 0.05）
@@ -131,7 +131,7 @@ def apply_human_confirm(
     allow_outside_band: bool = False,
 ) -> dict[str, Any]:
     """
-    人工确认落账。默认要求归一化后落在带宽内；
+    人工确认分配方案。默认要求归一化后落在带宽内；
     allow_outside_band=True 时允许越界（需在 UI 明示合规定责）。
     """
     bands = build_bands(formula_shares, band)

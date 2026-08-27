@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="warm" class="roadshow-ui">
+<html lang="zh-CN" data-theme="dark" class="roadshow-ui">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,7 +7,7 @@
   <script>
     (function () {
       var themes = ["roadshow", "warm", "dark"];
-      var t = localStorage.getItem("alphasplit-theme") || "warm";
+      var t = localStorage.getItem("alphasplit-theme") || "dark";
       if (themes.indexOf(t) < 0) t = "warm";
       document.documentElement.setAttribute("data-theme", t);
     })();
@@ -15,9 +15,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script src="/static/chart.umd.min.js"></script>
+  <script src="/static/echarts.min.js"></script>
   <link rel="stylesheet" href="/static/style.css" />
   <link rel="stylesheet" href="/static/premium.css" />
+  <link rel="stylesheet" href="/static/fintech.css" />
 </head>
 <body class="fx-3d">
   <div class="bg-grid"></div>
@@ -27,98 +28,99 @@
       <span class="tag">贡献可计量 · 价值应共享</span>
     </div>
     <div class="top-actions">
-      <button id="btnDevMode" class="btn-dev-toggle" type="button" title="显示开发者选项">开发者</button>
+      <button id="btnDevMode" class="btn-dev-toggle" type="button" title="显示回测参数、技术日志等专业选项">专业模式</button>
       <button id="btnThemeToggle" class="btn btn-theme" type="button" title="切换配色方案">→ 路演白</button>
-      <label class="scenario-pick">
-        <span>场景</span>
-        <select id="scenarioSelect"></select>
-      </label>
       <span id="healthDot" class="health-dot" title="服务状态"></span>
       <span id="healthBadge" class="badge badge-text">connecting…</span>
-      <button id="btnRunAll" class="btn primary">一键路演</button>
+      <button id="btnRunAll" class="btn btn-ghost">观看完整演示</button>
     </div>
   </header>
 
   <main class="main-stage-3d">
+    <div id="roadshowNarrator" class="roadshow-narrator hidden" aria-live="polite">
+      <div class="roadshow-narrator-inner glow-panel">
+        <div class="roadshow-narrator-head">
+          <span class="roadshow-phase" id="roadshowPhase">路演解说</span>
+          <span class="roadshow-timer" id="roadshowTimer">约 75 秒</span>
+        </div>
+        <p class="roadshow-line" id="roadshowLine">—</p>
+        <div class="roadshow-questions">
+          <span class="roadshow-q" data-q="1">① 各岗位贡献多少？</span>
+          <span class="roadshow-q" data-q="2">② 夏普利依据是什么？</span>
+          <span class="roadshow-q" data-q="3">③ 6:4 如何人工确认？</span>
+        </div>
+      </div>
+    </div>
     <section class="hero-premium">
       <p class="hero-eyebrow">AlphaSplit · 投研贡献计量平台</p>
-      <h1>岗位贡献，可计量、可解释<span class="compliance-pill">非自动发薪</span></h1>
+      <h1>岗位贡献，可计量、可解释<span class="compliance-pill">支持广义价值分配</span></h1>
       <p class="hero-lead">基于 HS300 真实数据的夏普利反事实回测，输出各角色边际贡献 → <span class="accent">人工确认后</span>方可应用。</p>
       <div id="heroKpiStrip" class="kpi-strip kpi-strip--empty">
         <div class="kpi-cell">
-          <span class="kpi-label">超额收益</span>
+          <span class="kpi-label">超额收益 <button type="button" class="metric-info-button" data-explain-key="excess_return" aria-label="查看超额收益计算依据" title="查看计算依据">i</button></span>
           <span class="kpi-value" id="kpiExcess">—</span>
           <span class="kpi-sub" id="kpiExcessSub">路演演示后更新</span>
         </div>
         <div class="kpi-cell">
-          <span class="kpi-label">夏普比率</span>
+          <span class="kpi-label">夏普比率 <button type="button" class="metric-info-button" data-explain-key="sharpe_ratio" aria-label="查看夏普比率计算依据" title="查看计算依据">i</button></span>
           <span class="kpi-value" id="kpiSharpe">—</span>
           <span class="kpi-sub" id="kpiSharpeSub">风险调整收益</span>
         </div>
         <div class="kpi-cell">
-          <span class="kpi-label">最大回撤</span>
+          <span class="kpi-label">最大回撤 <button type="button" class="metric-info-button" data-explain-key="max_drawdown" aria-label="查看最大回撤计算依据" title="查看计算依据">i</button></span>
           <span class="kpi-value" id="kpiDrawdown">—</span>
           <span class="kpi-sub" id="kpiDrawdownSub">组合风控</span>
         </div>
         <div class="kpi-cell">
-          <span class="kpi-label">贡献最高角色</span>
+          <span class="kpi-label">贡献最高角色 <button type="button" class="metric-info-button" data-explain-key="top_role" aria-label="查看最高角色建议权重依据" title="查看计算依据">i</button></span>
           <span class="kpi-value" id="kpiTopRole" style="font-size:1.25rem">—</span>
-          <span class="kpi-sub" id="kpiTopRoleSub">夏普利权重</span>
+          <span class="kpi-sub" id="kpiTopRoleSub">证据轨建议权重</span>
         </div>
       </div>
     </section>
 
-    <section class="hero-strip">
-      <h1>投研角色贡献计量 · 证据驱动的人工确认
-        <span class="compliance-badge">非自动发薪 · 人工确认</span>
-      </h1>
-      <p id="heroDesc">
-        <strong>难题：</strong>经典归因到不了岗位 →
-        <strong>方法：</strong>夏普利反事实回测 →
-        <strong>产出：</strong>可解释贡献系数 →
-        <strong>应用：</strong>人工协商确认（<em>非自动发薪</em>）。
-      </p>
+    <section id="selfGuide" class="self-guide" aria-labelledby="selfGuideTitle">
+      <div class="self-guide-head">
+        <div>
+          <p class="hero-eyebrow">第一次使用，从这里开始</p>
+          <h2 id="selfGuideTitle">用四步完成一份可解释的客户投资方案</h2>
+        </div>
+        <p>不需要理解算法术语，按当前步骤操作即可；每个结果都可以点击 <strong>i</strong> 查看依据。</p>
+      </div>
+      <nav class="journey-stepper cockpit-stepper guided-stepper" aria-label="自助体验流程">
+        <button type="button" class="journey-step active" data-guide-step="preferences" data-guide-target="factorConfigPanel">
+          <span class="step-ring">1</span>
+          <span class="step-label">描述投资需求</span>
+          <span class="step-hint">选择偏好或与Agent对话</span>
+        </button>
+        <div class="journey-connector" data-after="1"></div>
+        <button type="button" class="journey-step" data-guide-step="confirm" data-guide-target="factorProposalPreview">
+          <span class="step-ring">2</span>
+          <span class="step-label">确认Agent方案</span>
+          <span class="step-hint">只应用你确认的调整</span>
+        </button>
+        <div class="journey-connector" data-after="2"></div>
+        <button type="button" class="journey-step" data-guide-step="backtest" data-guide-target="guidedBacktestActions">
+          <span class="step-ring">3</span>
+          <span class="step-label">回测并理解结果</span>
+          <span class="step-hint">客户 / 默认 / 沪深300对照</span>
+        </button>
+        <div class="journey-connector" data-after="3"></div>
+        <button type="button" class="journey-step" data-guide-step="apply" data-guide-target="dualPoolPanel">
+          <span class="step-ring">4</span>
+          <span class="step-label">形成应用建议</span>
+          <span class="step-hint">6:4合成并由人工确认</span>
+        </button>
+      </nav>
+      <div class="guide-now" aria-live="polite">
+        <div>
+          <span>现在该做什么</span>
+          <strong id="guideNowTitle">先告诉Agent你的投资偏好</strong>
+          <p id="guideNowBody">页面已预选“稳健、控制回撤、关注风控”。你可以直接使用，也可以修改选择或补充文字。</p>
+        </div>
+        <button type="button" id="btnGuidePrimary" class="btn primary" data-guide-action="preferences">开始制定我的方案</button>
+      </div>
     </section>
-
-    <nav class="journey-stepper" aria-label="演示主线">
-      <button type="button" class="journey-step active" data-goto-tab="backtest" data-flow="1">
-        <span class="step-ring">1</span>
-        <span class="step-label">岗位贡献</span>
-        <span class="step-hint">HS300 真实回测</span>
-      </button>
-      <div class="journey-connector" data-after="1"></div>
-      <button type="button" class="journey-step" data-goto-tab="negotiate" data-flow="2">
-        <span class="step-ring">2</span>
-        <span class="step-label">人工确认</span>
-        <span class="step-hint">证据 → 决策</span>
-      </button>
-      <div class="journey-connector" data-after="2"></div>
-      <button type="button" class="journey-step" data-goto-tab="attribution" data-flow="3" data-open-appendix="1">
-        <span class="step-ring">3</span>
-        <span class="step-label">附录</span>
-        <span class="step-hint">Agent Mock</span>
-      </button>
-    </nav>
-
-    <nav class="demo-flow demo-flow-3d" aria-label="评委演示主线">
-      <button type="button" class="demo-flow-step current" data-goto-tab="backtest" data-flow="1">
-        <span class="num">①</span>
-        <span class="text">HS300 岗位贡献</span>
-        <span class="hint">核心证据 · 真实数据</span>
-      </button>
-      <span class="demo-flow-arrow">→</span>
-      <button type="button" class="demo-flow-step" data-goto-tab="negotiate" data-flow="2">
-        <span class="num">②</span>
-        <span class="text">人工确认</span>
-        <span class="hint">证据 → 决策</span>
-      </button>
-      <span class="demo-flow-arrow">→</span>
-      <button type="button" class="demo-flow-step" data-goto-tab="attribution" data-flow="3" data-open-appendix="1">
-        <span class="num">③</span>
-        <span class="text">Agent 实验规划</span>
-        <span class="hint">附录 · Mock</span>
-      </button>
-    </nav>
 
     <nav class="tabs tabs-primary" role="tablist" aria-label="主线功能">
       <button class="tab active" data-tab="backtest">HS300 岗位贡献</button>
@@ -128,18 +130,14 @@
     <details class="tabs-appendix-wrap" id="appendixTabs">
       <summary class="tabs-appendix-toggle">技术附录（答辩备用，非路演主线）</summary>
       <nav class="tabs tabs-appendix" role="tablist" aria-label="技术附录">
-        <button class="tab tab-appendix" data-tab="attribution">Agent 实验规划</button>
-        <button class="tab tab-appendix" data-tab="sensitivity">自动回平衡</button>
-        <button class="tab tab-appendix" data-tab="compare">三组对照</button>
-        <button class="tab tab-appendix" data-tab="evolution">演化曲线</button>
-        <button class="tab tab-appendix" data-tab="formula">公式详情</button>
+        <button class="tab tab-appendix" data-tab="technical">五角色方案技术说明</button>
       </nav>
     </details>
 
     <section id="panel-backtest" class="panel active">
       <div class="stage-shell">
-      <div class="panel-head">
-        <h2>HS300 多角色真实回测</h2>
+      <div class="panel-head advanced-only">
+        <h2>专业回测控制</h2>
         <div class="head-actions backtest-actions">
           <button id="btnBacktestDemo" class="btn primary" title="分阶段演示官方预置结果，约 22–28 秒，适合竞赛路演">开始路演演示</button>
           <button id="btnBacktest" class="btn btn-ghost" title="调用回测引擎实时计算，约 1–7 分钟">实时回测</button>
@@ -154,10 +152,10 @@
         <p class="mission-lead">
           <strong>本演示要回答：</strong>在投研多角色协作下，<em>各岗位对组合超额收益的贡献各占多少、依据是什么</em>。
         </p>
-        <p class="mission-note">产出可解释的贡献系数与回测证据，供考核与决策参考 —— <strong>不是自动发薪系统</strong>。<span id="backtestModeHint" class="mode-hint"></span></p>
+        <p class="mission-note">产出可解释的贡献系数与回测证据，可用于预算、资源、机会与激励权益等广义分配；<strong>方案须经人工确认</strong>。<span id="backtestModeHint" class="mode-hint"></span></p>
       </div>
 
-      <div id="agentPanel" class="agent-panel">
+      <div id="agentPanel" class="agent-panel advanced-only">
         <div class="agent-panel-head">
           <h3>Agent 规划回测</h3>
           <span class="agent-badge">独立模块 · 可替换</span>
@@ -167,12 +165,12 @@
           <label>
             <span>内置预设</span>
             <select id="agentPreset">
-              <option value="">自定义 / 自然语言</option>
+              <option value="demo_roadshow_2024h2_2025h1" selected>路演默认 · 2024下半年至2025上半年 HS300</option>
             </select>
           </label>
           <label class="agent-text-label">
             <span>自然语言需求</span>
-            <textarea id="agentText" rows="2" placeholder="例：2024上半年 HS300 全市场；或：半导体板块，偏重行业分析师"></textarea>
+            <textarea id="agentText" rows="2" placeholder="例：2024下半年至2025上半年 HS300 全市场；或：半导体板块，偏重行业分析师"></textarea>
           </label>
           <div class="agent-panel-actions">
             <button type="button" id="btnAgentPlan" class="btn btn-ghost">仅规划</button>
@@ -181,13 +179,95 @@
         </div>
         <div id="agentPlanPreview" class="agent-plan-preview hidden"></div>
       </div>
+
+      <div id="factorConfigPanel" class="agent-panel factor-config-panel">
+        <div class="agent-panel-head factor-agent-heading">
+          <div>
+            <p class="guided-stage-kicker">第1步</p>
+            <h3>告诉Agent你希望怎样投资</h3>
+            <p class="note agent-panel-note">选择风险偏好和目标，或直接用自然语言描述。Agent只生成建议，不会自动修改方案或开始回测。</p>
+          </div>
+          <span id="factorAgentModeBadge" class="agent-badge">检测模型中</span>
+        </div>
+
+        <div class="factor-agent-layout">
+          <section class="factor-chat-shell" aria-label="投资方案对话">
+            <div class="factor-preference-groups">
+              <div class="factor-pref-group">
+                <span class="factor-pref-label">风险偏好</span>
+                <div class="factor-chip-row">
+                  <button type="button" class="factor-chip" data-pref-key="risk_level" data-pref-value="稳健" data-exclusive="true">稳健</button>
+                  <button type="button" class="factor-chip" data-pref-key="risk_level" data-pref-value="均衡" data-exclusive="true">均衡</button>
+                  <button type="button" class="factor-chip" data-pref-key="risk_level" data-pref-value="进取" data-exclusive="true">进取</button>
+                </div>
+              </div>
+              <div class="factor-pref-group">
+                <span class="factor-pref-label">关注目标</span>
+                <div class="factor-chip-row">
+                  <button type="button" class="factor-chip" data-pref-key="objectives" data-pref-value="控制回撤">控制回撤</button>
+                  <button type="button" class="factor-chip" data-pref-key="objectives" data-pref-value="获取超额">获取超额</button>
+                  <button type="button" class="factor-chip" data-pref-key="objectives" data-pref-value="行业轮动">行业轮动</button>
+                  <button type="button" class="factor-chip" data-pref-key="objectives" data-pref-value="趋势交易">趋势交易</button>
+                </div>
+              </div>
+              <div class="factor-pref-group">
+                <span class="factor-pref-label">关注角色</span>
+                <div class="factor-chip-row">
+                  <button type="button" class="factor-chip" data-pref-key="focus_roles" data-pref-value="行业分析师">行业</button>
+                  <button type="button" class="factor-chip" data-pref-key="focus_roles" data-pref-value="个股分析师">个股</button>
+                  <button type="button" class="factor-chip" data-pref-key="focus_roles" data-pref-value="策略分析师">策略</button>
+                  <button type="button" class="factor-chip" data-pref-key="focus_roles" data-pref-value="量化分析师">量化</button>
+                  <button type="button" class="factor-chip" data-pref-key="focus_roles" data-pref-value="风控分析师">风控</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="factorChatMessages" class="factor-chat-messages" aria-live="polite"></div>
+            <label class="agent-text-label factor-chat-input" for="factorAgentText">
+              <span>补充你的投资需求</span>
+              <textarea id="factorAgentText" rows="3" maxlength="2000" placeholder="补充客户的个性化投资需求">我计划中长期持有，风险偏好稳健，希望优先控制最大回撤并加强风控，同时保留适度收益弹性。</textarea>
+            </label>
+            <div class="agent-panel-actions factor-chat-actions">
+              <button type="button" id="btnFactorPropose" class="btn primary">生成我的方案建议</button>
+              <button type="button" id="btnFactorClearChat" class="btn btn-ghost">清空对话</button>
+            </div>
+          </section>
+
+          <aside class="factor-config-audit">
+            <div id="factorConfigStatus" class="factor-config-status" aria-live="polite">正在加载默认配置…</div>
+            <details id="factorConfigDetails" class="factor-config-details">
+              <summary>查看当前五角色与40因子配置</summary>
+              <div id="factorRoleCards" class="factor-role-cards" aria-live="polite"></div>
+            </details>
+          </aside>
+        </div>
+
+        <div id="factorProposalPreview" class="agent-plan-preview hidden"></div>
+        <div class="agent-panel-actions factor-confirm-actions">
+          <button type="button" id="btnFactorApply" class="btn primary" disabled>确认这个方案，进入回测</button>
+          <button type="button" id="btnFactorReset" class="btn btn-ghost">恢复默认方案</button>
+        </div>
+      </div>
+
+      <section id="guidedBacktestActions" class="guided-backtest-actions" aria-labelledby="guidedBacktestTitle">
+        <div>
+          <p class="guided-stage-kicker">第3步</p>
+          <h3 id="guidedBacktestTitle">用已确认方案进行回测</h3>
+          <p>首次体验建议使用预置数据，约20秒看到完整结果；实时回测使用当前确认方案，通常需要1–7分钟。</p>
+        </div>
+        <div class="guided-action-buttons">
+          <button type="button" id="btnGuidedDemo" class="btn primary">使用预置数据快速体验</button>
+          <button type="button" id="btnGuidedBacktest" class="btn btn-ghost">运行我的方案回测</button>
+        </div>
+          <p class="guided-action-note" id="guidedConfigNote">完成“生成建议 → 人工确认”后解锁；专业模式也可直接使用默认等权方案。</p>
+      </section>
       <div id="agentReportPanel" class="agent-report hidden"></div>
 
       <div id="backtestRunLayout" class="backtest-run-layout">
         <div id="backtestNarrative" class="backtest-narrative">
           <div class="narrative-tag" id="narrativeTag">准备就绪</div>
-          <h3 class="narrative-title" id="narrativeTitle">点击「路演演示」秒开，或「实时回测」完整计算</h3>
-          <p class="narrative-body" id="narrativeBody">系统将依次完成：把岗位决策量化 → 模拟组合表现 → 夏普利反事实对照 → 输出各角色贡献。</p>
+          <h3 class="narrative-title" id="narrativeTitle">回测开始后，这里会逐步解释系统正在做什么</h3>
+          <p class="narrative-body" id="narrativeBody">系统将依次完成：加载数据 → 五角色因子选股 → 组合回测 → 夏普利反事实归因。</p>
           <div class="narrative-cols">
             <div><span class="lbl">这一步在做什么</span><p id="narrativeMeaning">—</p></div>
             <div><span class="lbl">本步产出</span><p id="narrativeOutput">—</p></div>
@@ -196,12 +276,23 @@
 
         <div id="backtestStatus" class="backtest-status hidden"></div>
 
-        <div id="backtestLivePanel" class="backtest-live-panel hidden">
-          <h3 class="live-title">过程看板 <span id="liveZoneLabel" class="live-zone-label">等待开始</span></h3>
-          <p class="live-sub">四块内容同步呈现；当前步骤以边框高亮，各板块互不遮挡。</p>
-          <div class="live-floor-3d" aria-hidden="true"></div>
+        <div id="backtestLivePanel" class="backtest-live-panel evidence-cockpit hidden">
+          <div class="cockpit-head">
+            <h3 class="live-title">证据驾驶舱 <span id="liveZoneLabel" class="live-zone-label">等待开始</span></h3>
+            <div class="shapley-ring-wrap" title="夏普利联盟子集进度（不含空集，共 31）">
+              <svg class="shapley-ring" viewBox="0 0 36 36" aria-hidden="true">
+                <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                <path id="shapleyRingArc" class="ring-fg" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              </svg>
+              <div class="ring-meta">
+                <span class="ring-count"><span id="shapleyRingCount">0</span>/31</span>
+                <span class="ring-caption">联盟进度</span>
+              </div>
+            </div>
+          </div>
+          <p class="live-sub">左角色 · 中净值 · 右夏普利子集；当前步骤流光高亮，数据随 SSE 实时推进。</p>
 
-          <div id="liveStage3d" class="backtest-live-grid">
+          <div id="liveStage3d" class="backtest-live-grid cockpit-grid">
             <div id="liveZoneMetrics" class="live-zone live-zone-pending" data-zone-label="数据加载">
               <div class="live-zone-head"><span class="live-zone-num">1</span><strong>数据加载</strong></div>
               <div class="live-zone-body">
@@ -213,32 +304,37 @@
               <div class="live-zone-head"><span class="live-zone-num">2</span><strong>五角色因子选股</strong></div>
               <div class="live-zone-body">
                 <div id="backtestRoleCards" class="role-factor-cards"></div>
-                <div class="chart-wrap live-chart-focus"><canvas id="backtestRoleLiveChart"></canvas></div>
+                <div class="live-chart-focus"><div id="backtestRoleLiveChart" class="echart"></div></div>
               </div>
             </div>
 
-            <div id="liveZonePipeline" class="live-zone live-zone-pending" data-zone-label="组合回测收益">
-              <div class="live-zone-head"><span class="live-zone-num">3</span><strong>组合回测收益</strong></div>
+            <div class="live-charts-row">
+            <div id="liveZonePipeline" class="live-zone live-zone-pending" data-zone-label="三方案累计收益对比">
+              <div class="live-zone-head"><span class="live-zone-num">3</span><strong>三方案累计收益对比</strong></div>
               <div class="live-zone-body">
-                <div class="chart-wrap live-chart-focus wide"><canvas id="backtestNavLiveChart"></canvas></div>
+                <div class="live-chart-focus"><div id="backtestNavLiveChart" class="echart"></div></div>
               </div>
             </div>
 
             <div id="liveZoneShapley" class="live-zone live-zone-pending" data-zone-label="夏普利反事实对照">
               <div class="live-zone-head"><span class="live-zone-num">4</span><strong>夏普利反事实对照</strong></div>
               <div class="live-zone-body">
-                <div class="chart-wrap live-chart-focus wide"><canvas id="backtestShapleyLiveChart"></canvas></div>
+                <div class="live-chart-focus"><div id="backtestShapleyLiveChart" class="echart"></div></div>
               </div>
+            </div>
             </div>
           </div>
         </div>
       </div>
 
       <div id="backtestProgressWrap" class="backtest-progress-float hidden" aria-live="polite">
-        <div class="backtest-progress-inner">
+        <div class="backtest-progress-inner glow-panel">
           <div class="backtest-progress-head">
             <span id="backtestStageLabel">准备中…</span>
-            <span id="backtestPercentLabel">0%</span>
+            <span class="progress-head-right">
+              <span id="shapleyMiniCount" class="shapley-mini">联盟 0/31</span>
+              <span id="backtestPercentLabel">0%</span>
+            </span>
           </div>
           <div class="backtest-progress-bar">
             <div id="backtestProgressFill" class="backtest-progress-fill"></div>
@@ -261,11 +357,11 @@
       <form id="backtestForm" class="backtest-form" onsubmit="return false;">
         <label>
           <span>开始日期</span>
-          <input type="date" id="btStart" value="2024-01-01" />
+          <input type="date" id="btStart" value="2024-07-01" />
         </label>
         <label>
           <span>结束日期</span>
-          <input type="date" id="btEnd" value="2024-06-30" />
+          <input type="date" id="btEnd" value="2025-06-30" />
         </label>
         <label>
           <span>行业筛选</span>
@@ -297,9 +393,13 @@
       <div id="backtestConclusion" class="backtest-conclusion hidden"></div>
       <h3 class="section-divider hidden" id="backtestTechDivider">技术明细</h3>
       <div id="backtestOverview" class="metric-grid hidden"></div>
-      <div class="charts-grid sens-grid">
-        <div class="chart-wrap"><canvas id="backtestWeightChart"></canvas></div>
-        <div class="chart-wrap"><canvas id="backtestShapleyChart"></canvas></div>
+      <section id="backtestPlanComparison" class="plan-comparison hidden" aria-live="polite"></section>
+      <div id="backtestEvidenceCharts" class="charts-grid sens-grid evidence-charts hidden">
+        <div class="chart-wrap glow-panel"><div id="backtestWeightChart" class="echart"></div></div>
+        <div class="chart-wrap glow-panel"><div id="backtestShapleyChart" class="echart"></div></div>
+      </div>
+      <div class="chart-wrap glow-panel dual-track-chart-wrap hidden" id="dualTrackResultWrap">
+        <div id="backtestDualTrackChart" class="echart echart-tall"></div>
       </div>
       <div id="backtestSummary" class="attr-interp hidden"></div>
       <div id="backtestTable" class="table-wrap"></div>
@@ -318,13 +418,13 @@
         </p>
         <p class="mission-note">
           <strong>6:4 双轨</strong>合成表 + <strong>五角色 Agent 协商</strong>（行业 / 个股 / 策略 / 量化 / 风控）；
-          锚点为夏普利证据，<strong>人工确认后</strong>落账 —— 非自动发薪。
+          锚点为夏普利证据，<strong>人工确认后</strong>形成可应用的价值分配方案。
         </p>
       </div>
       <div id="dualPoolPanel" class="dual-pool-panel hidden"></div>
       <h3 class="negotiate-section-title">五角色 Agent 协商</h3>
       <p class="note negotiate-role-hint">
-        请先完成 HS300 回测；协商将读取夏普利证据与现行分配（旧池 60%），五岗位各自陈述主张后形成建议案。
+        请先完成 HS300 回测；协商将读取夏普利证据与制度轨现行分配（60%），五岗位各自陈述主张后形成建议案。
       </p>
       <div id="chatStream" class="chat"></div>
       <div id="settlement" class="settlement hidden"></div>
@@ -332,89 +432,65 @@
       </div>
     </section>
 
-    <section id="panel-attribution" class="panel">
+    <section id="panel-technical" class="panel technical-appendix">
       <div class="panel-head">
-        <h2>Agent 实验规划（附录）</h2>
-        <button id="btnAttribution" class="btn">运行规划演示</button>
-      </div>
-      <p class="note appendix-note">
-        <strong>【Mock · 辅助层】</strong>本页展示 Agent 如何规划多时段对照实验，并将超额拆为策略 / 行业 / 偶然等因素。
-        <strong>核心岗位贡献计量请以「HS300 岗位贡献」页的夏普利结果为准</strong>，二者计量对象不同，请勿混淆。
-      </p>
-      <div id="attrPlan" class="attr-box"></div>
-      <div class="charts-grid sens-grid">
-        <div class="chart-wrap"><canvas id="attrWeightChart"></canvas></div>
-        <div class="chart-wrap"><canvas id="attrAllocChart"></canvas></div>
-      </div>
-      <div id="attrInterp" class="attr-interp"></div>
-      <div id="attrTable" class="table-wrap"></div>
-    </section>
-
-    <section id="panel-sensitivity" class="panel">
-      <p class="note appendix-note"><strong>【技术附录】</strong>目标份额调节与因子权重回平衡，供答辩时展示公式敏感性。</p>
-      <div class="panel-head">
-        <h2>目标设定 · 自动回平衡</h2>
-        <div class="head-actions">
-          <button id="btnSensitivityReset" class="btn">重置目标</button>
-          <button id="btnRebalance" class="btn primary">开始自动回平衡</button>
+        <div>
+          <p class="hero-eyebrow">与主流程同源的技术证据</p>
+          <h2>五角色方案技术说明</h2>
         </div>
       </div>
-      <p class="note">先拖动各角色「目标份额」（可故意设得很偏），再点自动回平衡：系统会投影到公式锚点±带宽的合理目标，并自动调节因子权重 w，动画收敛到更合理配比。</p>
-      <div id="targetControls" class="sensitivity-controls"></div>
-      <div class="rebalance-status">
-        <span>因子权重 w = <strong id="liveW">—</strong></span>
-        <span>进度 <strong id="liveProgress">0%</strong></span>
-        <span id="liveMsg" class="muted"></span>
-      </div>
-      <div class="charts-grid sens-grid">
-        <div class="chart-wrap"><canvas id="shareBarChart"></canvas></div>
-        <div class="chart-wrap"><canvas id="sweepChart"></canvas></div>
-      </div>
-      <div id="sensTable" class="table-wrap"></div>
-    </section>
+      <p class="technical-lead">
+        本附录只解释前面实际运行的客户方案 Agent、HS300 回测、夏普利归因和人工确认，不引入其他人员或独立示例。
+      </p>
 
-    <section id="panel-compare" class="panel">
-      <p class="note appendix-note"><strong>【技术附录】</strong>KPI / 公式 / Agent 三组分配对照。</p>
-      <div class="panel-head">
-        <h2>KPI / 公式 / Agent 三组对照</h2>
-        <button id="btnCompare" class="btn">刷新对照</button>
-      </div>
-      <p class="note" id="compareNote"></p>
-      <div class="chart-wrap">
-        <canvas id="compareChart" height="120"></canvas>
-      </div>
-      <div id="compareTable" class="table-wrap"></div>
-    </section>
+      <ol class="technical-flow" aria-label="当前系统技术链路">
+        <li><strong>意图转换</strong><span>客户用选择和文字表达偏好</span></li>
+        <li><strong>配置校验</strong><span>Agent 仅生成白名单内的因子补丁</span></li>
+        <li><strong>组合回测</strong><span>确认后的配置进入五角色 Pipeline</span></li>
+        <li><strong>反事实归因</strong><span>32个角色联盟计算边际贡献</span></li>
+        <li><strong>人工应用</strong><span>证据经协商和确认后才能使用</span></li>
+      </ol>
 
-    <section id="panel-evolution" class="panel">
-      <p class="note appendix-note"><strong>【技术附录】</strong>多轮演化下的基尼、满意度与复用率曲线。</p>
-      <div class="panel-head">
-        <h2>100 轮演化</h2>
-        <button id="btnEvolution" class="btn">跑演化</button>
+      <h3 class="technical-heading">五角色与40因子</h3>
+      <div class="table-wrap technical-role-table">
+        <table>
+          <thead><tr><th>角色</th><th>决策职责</th><th>8个因子</th><th>配置影响</th></tr></thead>
+          <tbody>
+            <tr><td>行业分析师</td><td>行业趋势与赛道筛选</td><td>动量、均线、趋势效率、突破、区间位置</td><td>改变行业候选排序</td></tr>
+            <tr><td>个股分析师</td><td>个股反转与形态筛选</td><td>反转、RSI、随机指标、回撤、下影线、下轨突破</td><td>改变个股候选池排序</td></tr>
+            <tr><td>策略分析师</td><td>收益特征、择时与仓位</td><td>动量、跳空、日内收益、波动、ATR、偏度、峰度</td><td>改变策略评分和目标波动率</td></tr>
+            <tr><td>量化分析师</td><td>量价信号与候选优化</td><td>量比、量能异常、成交额、量价相关、OBV、时序排名</td><td>优化最终入选股票</td></tr>
+            <tr><td>风控分析师</td><td>波动、回撤与集中度约束</td><td>波动率、下行波动、ATR、振幅、回撤、偏度、峰度</td><td>改变风险评分和持仓约束</td></tr>
+          </tbody>
+        </table>
       </div>
-      <div class="charts-grid">
-        <div class="chart-wrap"><canvas id="giniChart"></canvas></div>
-        <div class="chart-wrap"><canvas id="satChart"></canvas></div>
-        <div class="chart-wrap"><canvas id="reuseChart"></canvas></div>
-      </div>
-    </section>
 
-    <section id="panel-formula" class="panel">
-      <p class="note appendix-note"><strong>【技术附录】</strong>贡献值公式锚点与场景参数说明。</p>
-      <div class="panel-head">
-        <h2>贡献值公式（锚点）</h2>
-        <button id="btnCalculate" class="btn">重新计算</button>
+      <div class="technical-columns">
+        <section>
+          <h3>因子配置约束</h3>
+          <ul>
+            <li>默认12.5%仅是每个角色内部8因子的等权起点。</li>
+            <li>每个角色内部权重归一化为100%，单因子最终不超过35%。</li>
+            <li>波动率等风险因子按“低值优先”计分，回撤原始值按“越接近0越好”计分。</li>
+            <li>DeepSeek失败时明确显示规则回退；未确认建议不会进入回测。</li>
+          </ul>
+        </section>
+        <section>
+          <h3>回测与归因口径</h3>
+          <ul>
+            <li>月末信号用于下一月持仓，避免使用未来信息。</li>
+            <li>组合累计收益按各期收益连续复利计算。</li>
+            <li><code>v(S) = R(S) - R(沪深300)</code>，五角色共有32个联盟子集。</li>
+            <li>各角色夏普利值之和等于全组合相对沪深300的超额收益。</li>
+          </ul>
+        </section>
       </div>
-      <div class="formula-box">
-        <code>C = Labor × Impact × Scarcity × Reuse</code>
-        <ul>
-          <li><strong>锚点</strong>：公式份额为可审计中枢</li>
-          <li><strong>带宽</strong>：默认 ±5%，协商建议案夹入带宽</li>
-          <li><strong>人工确认</strong>：合规定责后落账，可微调</li>
-          <li><strong>场景</strong>：换 JSON 即可切换行业样例</li>
-        </ul>
+
+      <div class="technical-governance">
+        <h3>证据如何进入最终方案</h3>
+        <p><strong>最终方案 = 60% × 制度轨现行方案 + 40% × 夏普利证据轨。</strong></p>
+        <p>客户方案、默认等权方案和沪深300使用同一回测口径对照；结果用于解释配置差异，不构成收益承诺。五角色协商只形成建议，最终由治理责任人确认。</p>
       </div>
-      <div id="formulaTable" class="table-wrap"></div>
     </section>
   </main>
 
@@ -422,6 +498,19 @@
     <span>第五届中国研究生金融科技创新大赛 · 自拟赛题 · AI in Finance</span>
   </footer>
 
-  <script src="/static/app.js"></script>
+  <div id="metricExplainOverlay" class="metric-explain-overlay hidden" aria-hidden="true">
+    <aside id="metricExplainDialog" class="metric-explain-dialog" role="dialog" aria-modal="true" aria-labelledby="metricExplainTitle">
+      <header class="metric-explain-head">
+        <div>
+          <span class="metric-explain-eyebrow">数据依据</span>
+          <h2 id="metricExplainTitle">指标解释</h2>
+        </div>
+        <button type="button" id="btnMetricExplainClose" class="metric-explain-close" aria-label="关闭数据解释" title="关闭">×</button>
+      </header>
+      <div id="metricExplainBody" class="metric-explain-body"></div>
+    </aside>
+  </div>
+
+  <script src="/static/app.js?v=20260827-backtest-v4"></script>
 </body>
 </html>
