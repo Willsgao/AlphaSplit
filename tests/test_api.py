@@ -209,6 +209,50 @@ class TestBacktestApi(unittest.TestCase):
         self.assertEqual(history.status_code, 403)
         self.assertEqual(run.status_code, 403)
 
+    def test_public_demo_mode_allows_offline_agent_cache(self):
+        with patch.dict(
+            "os.environ",
+            {
+                "ALPHASPLIT_PUBLIC_DEMO_ONLY": "1",
+                "DEEPSEEK_API_KEY": "",
+                "OPENAI_API_KEY": "",
+            },
+            clear=False,
+        ):
+            response = self.client.post(
+                "/api/agent/factor-config",
+                json={
+                    "text": "我计划中长期持有，希望优先控制最大回撤并加强风控。",
+                    "mode": "llm",
+                    "quick_preferences": {
+                        "risk_level": "稳健",
+                        "objectives": ["控制回撤"],
+                        "focus_roles": ["风控分析师"],
+                    },
+                },
+            )
+
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["source"], "agent_cache")
+
+    def test_public_demo_mode_blocks_live_agent_without_token(self):
+        with patch.dict(
+            "os.environ",
+            {
+                "ALPHASPLIT_PUBLIC_DEMO_ONLY": "1",
+                "DEEPSEEK_API_KEY": "test-key",
+                "OPENAI_API_KEY": "",
+            },
+            clear=False,
+        ):
+            response = self.client.post(
+                "/api/agent/factor-config",
+                json={"text": "调整风险配置", "mode": "llm"},
+            )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()["detail"]["error_code"], "PUBLIC_DEMO_ONLY")
+
     def test_configured_token_protects_backtest_history(self):
         with patch.dict("os.environ", {"ALPHASPLIT_API_TOKEN": "test-secret"}, clear=False):
             denied = self.client.get("/api/backtest/results")

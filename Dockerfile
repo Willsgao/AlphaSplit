@@ -1,15 +1,19 @@
 FROM python:3.11-slim
 
+ARG PIP_INDEX_URL=https://mirrors.cloud.tencent.com/pypi/simple
+
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
+    PIP_INDEX_URL=${PIP_INDEX_URL} \
+    PIP_DEFAULT_TIMEOUT=120 \
+    PIP_RETRIES=5 \
     TZ=Asia/Shanghai
 
 WORKDIR /app
 
 COPY requirements-lock.txt /app/requirements-lock.txt
-RUN python -m pip install --upgrade pip \
-    && python -m pip install -r /app/requirements-lock.txt
+RUN python -m pip install --disable-pip-version-check -r /app/requirements-lock.txt
 
 COPY agent_layer /app/agent_layer
 COPY backtest /app/backtest

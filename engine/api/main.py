@@ -44,7 +44,7 @@ from engine.api.models import (
     SensitivityRequest,
     SimulateRequest,
 )
-from agent_layer.impl.llm import clear_runtime_api_key, configure_runtime_api_key
+from agent_layer.impl.llm import clear_runtime_api_key, configure_runtime_api_key, llm_status
 from engine.integrations.agent_bridge import (
     interpret_backtest as agent_interpret,
     list_presets as agent_list_presets,
@@ -341,7 +341,9 @@ def api_agent_factor_config(
     x_alphasplit_token: str | None = Header(default=None, alias="X-AlphaSplit-Token"),
 ):
     """根据用户描述生成配置变更预览；不触发回测。"""
-    if body.mode == "llm":
+    # "llm" also selects the bundled offline Agent cache when no live model is
+    # configured. Keep that zero-cost demo path public, but protect real calls.
+    if body.mode == "llm" and llm_status().get("available") is True:
         _require_backtest_access(x_alphasplit_token)
     try:
         return {

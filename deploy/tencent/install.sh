@@ -24,7 +24,15 @@ fi
 
 if ! command -v nginx >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
   if command -v dnf >/dev/null 2>&1; then
-    dnf install -y nginx curl
+    if ! dnf install -y nginx curl; then
+      if command -v ss >/dev/null 2>&1 && ss -lnt | grep -Eq ':(80|443)[[:space:]]'; then
+        echo "检测到 80/443 端口已被占用，且系统包管理器无法安装 Nginx。" >&2
+        echo "请先确认现有 Web 服务的反向代理配置，再重新部署。" >&2
+        exit 1
+      fi
+      echo "常规安装被系统镜像的软件包排除规则拦截，尝试显式启用 Nginx 包。"
+      dnf --disableexcludes=all install -y nginx curl
+    fi
   elif command -v yum >/dev/null 2>&1; then
     yum install -y nginx curl
   else
