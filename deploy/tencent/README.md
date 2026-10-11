@@ -9,7 +9,19 @@
 
 ```bash
 dnf install -y dnf-plugins-core git
-dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+dnf config-manager --add-repo https://mirrors.cloud.tencent.com/docker-ce/linux/centos/docker-ce.repo
+dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+systemctl enable --now docker
+docker compose version
+```
+
+若此前已添加 Docker 官方源，并出现 `SSL connect error` 或
+`Connection reset by peer`，将现有源切换到腾讯云镜像后重新生成缓存：
+
+```bash
+sed -i 's#https://download.docker.com#https://mirrors.cloud.tencent.com/docker-ce#g' /etc/yum.repos.d/docker-ce.repo
+dnf clean all
+dnf makecache --refresh
 dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 systemctl enable --now docker
 docker compose version
