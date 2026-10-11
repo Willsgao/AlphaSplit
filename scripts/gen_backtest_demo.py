@@ -44,7 +44,11 @@ def monthly_stats(rows: list[dict], key: str) -> dict[str, float | None]:
 
 def stock_labels_from_daily() -> dict[str, str]:
     names: dict[str, str] = {}
-    daily = ROOT / "data/processed/hs300_daily_cleaned.csv"
+    daily = ROOT / "data/processed/hs300_daily_qfq.csv.gz"
+    if not daily.exists():
+        daily = ROOT / "data/processed/hs300_daily_qfq.csv"
+    if not daily.exists():
+        daily = ROOT / "data/processed/hs300_daily_cleaned.csv"
     if not daily.exists():
         return names
     import pandas as pd

@@ -76,8 +76,11 @@ print("=" * 60)
 print("📊 加载数据...")
 print("=" * 60)
 
-# 股票日K线数据
-df_daily = pd.read_csv(f"{DATA_DIR}/hs300_daily_cleaned.csv", encoding="utf-8-sig")
+# 股票日K线数据（仓库内保留前复权主数据集）
+daily_file = f"{DATA_DIR}/hs300_daily_qfq.csv.gz"
+if not os.path.exists(daily_file):
+    daily_file = f"{DATA_DIR}/hs300_daily_qfq.csv"
+df_daily = pd.read_csv(daily_file, encoding="utf-8-sig")
 df_daily["date"] = pd.to_datetime(df_daily["date"])
 df_daily = df_daily.rename(columns={"stock_code": "symbol"})
 df_daily = df_daily.sort_values(["symbol", "date"]).reset_index(drop=True)
@@ -98,8 +101,11 @@ df_index = df_index.sort_values("date").reset_index(drop=True)
 # 行业映射数据
 df_industry = pd.read_csv(f"{DATA_DIR}/stock_industry_mapping.csv", encoding="utf-8-sig")
 
-# 财务数据（PE/PB/ROE）- 新增
-df_financial = pd.read_csv(f"{DATA_DIR}/financial_monthly.csv", encoding="utf-8-sig")
+# 财务数据（已清洗，避免未来数据）
+financial_file = f"{DATA_DIR}/financial_monthly_clean.csv.gz"
+if not os.path.exists(financial_file):
+    financial_file = f"{DATA_DIR}/financial_monthly_clean.csv"
+df_financial = pd.read_csv(financial_file, encoding="utf-8-sig")
 df_financial["date"] = pd.to_datetime(df_financial["date"])
 df_financial = df_financial.rename(columns={"stock_code": "symbol"})
 print(f"  财务数据: {len(df_financial):,} 条记录")

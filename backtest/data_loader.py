@@ -43,7 +43,9 @@ class DataLoader:
         # Sprint 0-2: 优先使用前复权数据 hs300_daily_qfq.csv（消除除权除息跳空假收益）
         # 若复权文件尚未生成，回退到未复权 hs300_daily_cleaned.csv
         print("  加载股票日K线数据...")
-        qfq_file = os.path.join(PROCESSED_DIR, 'hs300_daily_qfq.csv')
+        qfq_file = os.path.join(PROCESSED_DIR, 'hs300_daily_qfq.csv.gz')
+        if not os.path.exists(qfq_file):
+            qfq_file = os.path.join(PROCESSED_DIR, 'hs300_daily_qfq.csv')
         if os.path.exists(qfq_file):
             self.stock_data = pd.read_csv(
                 qfq_file,
@@ -91,7 +93,9 @@ class DataLoader:
         # Sprint 0-3: 使用清洗后数据（删除2026未来数据 + winsorize异常值）
         # 优先加载 financial_monthly_clean.csv，回退到原始文件
         print("  加载历史财务数据...")
-        financial_file = os.path.join(PROCESSED_DIR, 'financial_monthly_clean.csv')
+        financial_file = os.path.join(PROCESSED_DIR, 'financial_monthly_clean.csv.gz')
+        if not os.path.exists(financial_file):
+            financial_file = os.path.join(PROCESSED_DIR, 'financial_monthly_clean.csv')
         if not os.path.exists(financial_file):
             financial_file = os.path.join(PROCESSED_DIR, 'financial_monthly.csv')
             print("  ⚠ 未找到 financial_monthly_clean.csv，回退到原始文件（含未来数据）")

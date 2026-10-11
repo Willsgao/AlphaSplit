@@ -37,11 +37,14 @@ def _bootstrap() -> None:
 
 def data_available() -> bool:
     """检查随包回测数据是否就绪。"""
-    required = [
-        DATA_DIR / "hs300_daily_cleaned.csv",
-        DATA_DIR / "stock_industry_mapping.csv",
+    required_groups = [
+        [DATA_DIR / "hs300_daily_qfq.csv.gz", DATA_DIR / "hs300_daily_qfq.csv"],
+        [DATA_DIR / "financial_monthly_clean.csv.gz", DATA_DIR / "financial_monthly_clean.csv"],
+        [DATA_DIR / "stock_industry_mapping.csv"],
+        [DATA_DIR / "hs300_index_daily.csv"],
+        [DATA_DIR / "industry_returns_daily.csv"],
     ]
-    return all(p.exists() for p in required)
+    return all(any(path.exists() for path in alternatives) for alternatives in required_groups)
 
 
 def get_engine():

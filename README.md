@@ -256,8 +256,11 @@ AlphaSplit/
 
 ### 数据说明
 
-演示依赖 `data/processed/` 中的复权日 K（`hs300_daily_qfq.csv`）及配套因子表。  
-原始全量未复权文件 `hs300_daily_all.csv`（>100MB）未纳入 Git；本地若有可自行放置，引擎会优先使用 `hs300_daily_qfq.csv`。
+真实回测依赖 `data/processed/` 中的前复权日 K（仓库保存为
+`hs300_daily_qfq.csv.gz`）、清洗后财务数据（`financial_monthly_clean.csv.gz`）
+及指数、行业和股票映射表；Pandas 会直接读取压缩文件，无需手动解压。
+原始全量未复权文件和重复的回退副本不纳入 Git。本地保留同名 `.csv` 时，
+引擎仍兼容读取。
 
 ### 独立回测服务（可选）
 

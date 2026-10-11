@@ -414,7 +414,9 @@ class DataLoader:
         print("[DataLoader] 加载数据...")
         
         # 日K线（Sprint 0-2: 优先前复权数据 hs300_daily_qfq.csv）
-        daily_file = f"{DATA_DIR}/hs300_daily_qfq.csv"
+        daily_file = f"{DATA_DIR}/hs300_daily_qfq.csv.gz"
+        if not os.path.exists(daily_file):
+            daily_file = f"{DATA_DIR}/hs300_daily_qfq.csv"
         if not os.path.exists(daily_file):
             daily_file = f"{DATA_DIR}/hs300_daily_cleaned.csv"
             print("  ⚠ 未找到复权数据，回退到未复权 hs300_daily_cleaned.csv")
@@ -440,7 +442,9 @@ class DataLoader:
         self.df_industry = pd.read_csv(f"{DATA_DIR}/stock_industry_mapping.csv", encoding="utf-8-sig")
         
         # 财务数据（Sprint 0-3: 优先清洗后数据 financial_monthly_clean.csv）
-        fin_file = f"{DATA_DIR}/financial_monthly_clean.csv"
+        fin_file = f"{DATA_DIR}/financial_monthly_clean.csv.gz"
+        if not os.path.exists(fin_file):
+            fin_file = f"{DATA_DIR}/financial_monthly_clean.csv"
         if not os.path.exists(fin_file):
             fin_file = f"{DATA_DIR}/financial_monthly.csv"
             print("  ⚠ 未找到清洗后财务数据，回退到原始文件")

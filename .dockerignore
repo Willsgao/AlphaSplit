@@ -22,3 +22,7 @@ scripts
 tests
 决赛答辩PPT_高玉伟三页_HTML
 data/processed/hs300_daily_all.csv
+data/processed/hs300_daily_qfq.csv
+data/processed/hs300_daily_cleaned.csv
+data/processed/financial_monthly_clean.csv
+data/processed/financial_monthly.csv

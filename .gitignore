@@ -20,7 +20,17 @@ backtest/results/
 backtest/reports/
 .pytest_cache/
 data/processed/hs300_daily_all.csv
+# Local uncompressed and legacy copies; Git keeps compressed primary datasets.
+data/processed/hs300_daily_qfq.csv
+data/processed/hs300_daily_cleaned.csv
+data/processed/financial_monthly_clean.csv
+data/processed/financial_monthly.csv
 docs/_review_doc_extract.txt
+
+# Generated competition deliverables stay in the local workspace/submission package.
+/docs/*.docx
+/docs/.qa_*/
+/决赛答辩PPT_高玉伟三页_HTML/
 
 # Local review, rendering, packaging, and IDE artifacts
 .codex-*/
