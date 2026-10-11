@@ -2880,10 +2880,11 @@ async function loadBacktestMeta() {
       '<option value="">全行业</option>' +
       BT_INDUSTRIES.map((i) => `<option value="${i}">${i}</option>`).join("");
 
-    if (!meta.data_ready) {
-      setBacktestStatus("回测数据未就绪，请确认 data/processed/ 已随仓库提供。", "error");
-    } else if (meta.demo?.available) {
-      updateBacktestModeHint(`可路演演示：${meta.demo.label || "官方预置包"}`);
+    if (meta.demo?.available) {
+      const suffix = meta.data_ready ? "" : "；当前为轻量公开演示部署";
+      updateBacktestModeHint(`可路演演示：${meta.demo.label || "官方预置包"}${suffix}`);
+    } else if (!meta.data_ready) {
+      setBacktestStatus("回测数据与预置演示包均未就绪。", "error");
     }
     initBacktestLiveState();
     updateBacktestNarrative("idle");

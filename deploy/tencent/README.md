@@ -39,21 +39,23 @@ chmod 600 .env
 bash deploy/tencent/install.sh
 ```
 
-项目包含用于离线演示的行情数据，腾讯云到 GitHub 的链路偶尔会在下载中断开。
+项目包含用于实时回测的大体积行情数据，腾讯云到 GitHub 的链路偶尔会在下载中断开。
 出现 `RPC failed`、`early EOF` 或 `Connection timed out` 时，确认失败目录不存在后，
-使用只检出运行所需目录的方式重试：
+使用轻量公开演示检出方式重试。它保留预计算回测包、离线 Agent 缓存和全部页面，
+只省略公开演示模式本来就禁止访问的实时回测原始数据：
 
 ```bash
 cd /data
-rm -rf /data/AlphaSplit.partial
 git -c http.version=HTTP/1.1 clone --depth 1 --filter=blob:none --no-checkout \
-  https://github.com/Willsgao/AlphaSplit.git /data/AlphaSplit.partial
-cd /data/AlphaSplit.partial
-git sparse-checkout init --cone
-git sparse-checkout set agent_layer backtest data engine deploy
-git checkout main
-mv /data/AlphaSplit.partial /data/AlphaSplit
+  https://github.com/Willsgao/AlphaSplit.git /data/AlphaSplit
 cd /data/AlphaSplit
+git sparse-checkout init --no-cone
+git sparse-checkout set '/Dockerfile' '/compose.yaml' '/requirements-lock.txt' \
+  '/agent_layer/' '/backtest/' '/engine/' '/deploy/' '/data/scenarios/'
+git checkout main
+cp deploy/tencent/alphasplit.env.example .env
+chmod 600 .env
+bash deploy/tencent/install.sh
 ```
 
 完成后访问：
