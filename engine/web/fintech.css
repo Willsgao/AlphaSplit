@@ -62,11 +62,38 @@
   color: transparent;
 }
 
-/* ECharts hosts */
+/* Native Canvas chart hosts */
 .echart {
   width: 100%;
   height: 280px;
   min-height: 220px;
+  position: relative;
+}
+
+.native-chart-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.native-chart-tooltip {
+  position: absolute;
+  z-index: 5;
+  min-width: 120px;
+  max-width: 220px;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg2) 94%, transparent);
+  color: var(--ink);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  white-space: pre-line;
+  pointer-events: none;
+  box-shadow: var(--shadow-md);
+}
+
+.native-chart-tooltip.hidden {
+  display: none;
 }
 
 /* 驾驶舱内图表：固定高度，防止溢出遮挡下方区块 */

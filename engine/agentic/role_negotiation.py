@@ -1,8 +1,4 @@
-"""
-HS300 五角色 Agent 协商（与夏普利回测、6:4 双轨对齐）。
-
-与 quant_fund 三人场景分离；人工确认页主线应使用本模块。
-"""
+"""HS300 五角色贡献陈述与评审决策支持。"""
 from __future__ import annotations
 
 from typing import Any, Optional
@@ -11,7 +7,6 @@ from engine.core.settlement import (
     apply_human_confirm,
     build_bands,
     build_settlement_rows,
-    propose_from_negotiation,
 )
 
 ROLE_ORDER = [
@@ -80,22 +75,22 @@ def _utterance(
             return (
                 f"本轮夏普利边际贡献约 {shapley_pct:+.2f}%，新池建议权重 {new_w*100:.1f}%。"
                 f"行业/岗位决策对组合超额贡献显著，6:4 合成仅 {composite*100:.1f}% 低估了我的边际价值，"
-                f"我主张总资源池份额至少 {claim*100:.1f}%。"
+                f"我建议评审关注总资源池份额 {claim*100:.1f}%；仅供评审参考，不构成分配决定。"
             )
         if shapley_pct < 0:
             return (
                 f"夏普利为负（{shapley_pct:+.2f}%），我接受考核问责，但现行 60% 制度份额应保留；"
-                f"建议合成 {composite*100:.1f}%，我主张 {claim*100:.1f}% 以便复盘改进。"
+                f"建议评审参考 {claim*100:.1f}% 并结合复盘改进；仅供评审参考，不构成分配决定。"
             )
         return (
             f"贡献证据 {shapley_pct:+.2f}%，新池 {new_w*100:.1f}%，6:4 合成 {composite*100:.1f}%。"
-            f"我认可计量框架，主张 {claim*100:.1f}% 作为协商起点。"
+            f"我认可计量框架，建议评审参考 {claim*100:.1f}%；该陈述不构成分配决定。"
         )
     # rebuttal
     return (
-        f"已听取其他岗位意见。我同意以夏普利为协商锚点，"
-        f"在 ±5% 带宽内将主张调整为 {claim*100:.1f}%，"
-        f"请治理责任人以 6:4 证据合成 {composite*100:.1f}% 为基准讨论分配方案。"
+        f"已听取其他岗位意见。我建议评审参考份额为 {claim*100:.1f}%，"
+        f"但该意见仅供评审参考，不改变 6:4 合成建议 {composite*100:.1f}%。"
+        f"最终比例由评审委员会（或机构治理责任人）独立判断。"
     )
 
 
@@ -175,20 +170,21 @@ def _arbiter_speech(
     band: float,
 ) -> str:
     lines = [
-        "【投委会 / 治理责任人意见】",
+        "【评审委员会 / 机构治理责任人决策说明】",
         "1) 计量锚点：HS300 回测夏普利边际贡献（新池 40%）；",
         f"2) 制度保留：现行分配占旧池 60%；合成公式 = 60%×现行 + 40%×夏普利；",
-        f"3) 各方可在证据锚点 ±{band:.0%} 带宽内协商，最终须由治理责任人确认，系统不自动执行分配。",
+        "3) 五类角色陈述仅供评审参考，不参与建议份额计算，也不构成分配决定；",
+        f"4) 评审委员会可参考角色意见，在 6:4 建议 ±{band:.0%} 范围内独立调整并确认；系统不自动执行分配。",
         "",
-        "各岗位 6:4 合成基准与系统建议：",
+        "各岗位 6:4 合成建议与角色参考意见：",
     ]
     for role in ROLE_ORDER:
         lines.append(
             f"- {role}：现行 {baseline[role]:.1%} + 新池 {new_pool[role]:.1%} "
-            f"→ 合成 {composite[role]:.1%}；协商意向 {negotiated.get(role, 0):.1%}；"
-            f"建议案 {proposed.get(role, composite[role]):.1%}"
+            f"→ 系统建议 {proposed.get(role, composite[role]):.1%}；"
+            f"角色参考意见 {negotiated.get(role, 0):.1%}"
         )
-    lines.append("\n请治理责任人在下方确认或微调方案后再应用。")
+    lines.append("\n请评审委员会（或机构治理责任人）在下方独立判断、调整并确认后再应用。")
     return "\n".join(lines)
 
 
@@ -206,7 +202,8 @@ def run_role_negotiation(
     rounds, final_norm = _build_rounds(composite, new_pool, bmap)
 
     distributable = round(bonus_pool * (1 - platform_share), 2)
-    proposed, bands = propose_from_negotiation(final_norm, composite, band=band, blend=0.4)
+    bands = build_bands(composite, band)
+    proposed = {role: round(composite[role], 4) for role in ROLE_ORDER}
 
     settle = build_settlement_rows(
         formula_shares={k: round(composite[k], 4) for k in ROLE_ORDER},
@@ -223,15 +220,15 @@ def run_role_negotiation(
     return {
         "mode": mode,
         "scenario_id": "hs300_five_roles",
-        "scenario": "HS300 五角色投研贡献协商",
+        "scenario": "HS300 五角色贡献陈述与评审决策",
         "domain": "equity_research",
-        "framework": "夏普利证据 · 6:4双轨 · 五角色协商 · 人工确认",
+        "framework": "夏普利证据 · 6:4双轨 · 角色陈述参考 · 评审委员会决策",
         "role_model": "five_roles",
         "agents": [
             {"name": r, "role": r, "initial_claim": round(final_norm.get(r, composite[r]), 4)}
             for r in ROLE_ORDER
         ],
-        "arbiter": {"name": "投委会秘书", "role": "治理责任人 / 投委会"},
+        "arbiter": {"name": "评审委员会", "role": "评审委员会 / 机构治理责任人"},
         "rounds": rounds,
         "converged": True,
         "arbiter_intervened": False,
@@ -284,7 +281,7 @@ def confirm_role_settlement(
         band=band,
         allow_outside_band=allow_outside_band,
     )
-    result["scenario"] = nego.get("scenario", "HS300 五角色投研贡献协商")
+    result["scenario"] = nego.get("scenario", "HS300 五角色贡献陈述与评审决策")
     result["scenario_id"] = "hs300_five_roles"
     result["role_model"] = "five_roles"
     return result

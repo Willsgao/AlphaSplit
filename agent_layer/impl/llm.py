@@ -6,6 +6,7 @@ import json
 import os
 import re
 import socket
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -43,6 +44,8 @@ class LLMProviderError(RuntimeError):
 _last_call: ContextVar[LLMCallMetadata | None] = ContextVar(
     "alphasplit_last_llm_call", default=None
 )
+_runtime_key_lock = threading.RLock()
+_runtime_api_key: str | None = None
 
 
 def reset_llm_call_metadata() -> None:
@@ -54,22 +57,50 @@ def get_last_llm_call() -> dict[str, Any] | None:
     return value.to_dict() if value else None
 
 
+def configure_runtime_api_key(api_key: str) -> dict[str, Any]:
+    """仅在当前服务进程内保存 DeepSeek Key。"""
+    key = api_key.strip()
+    if len(key) < 10 or len(key) > 512:
+        raise ValueError("API Key 长度应为 10 到 512 个字符")
+    global _runtime_api_key
+    with _runtime_key_lock:
+        _runtime_api_key = key
+    return llm_status()
+
+
+def clear_runtime_api_key() -> dict[str, Any]:
+    """清除页面配置的 Key；环境变量（如有）不受影响。"""
+    global _runtime_api_key
+    with _runtime_key_lock:
+        _runtime_api_key = None
+    return llm_status()
+
+
+def _active_api_key() -> tuple[str | None, str, str]:
+    with _runtime_key_lock:
+        runtime_key = _runtime_api_key
+    if runtime_key:
+        return runtime_key, "deepseek", "runtime"
+    if os.environ.get("DEEPSEEK_API_KEY"):
+        return os.environ["DEEPSEEK_API_KEY"], "deepseek", "environment"
+    if os.environ.get("OPENAI_API_KEY"):
+        return os.environ["OPENAI_API_KEY"], "openai_compatible", "environment"
+    return None, "none", "none"
+
+
 def llm_available() -> bool:
-    return bool(os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("OPENAI_API_KEY"))
+    key, _, _ = _active_api_key()
+    return bool(key)
 
 
 def llm_status() -> dict[str, Any]:
     """返回可公开的模型状态，不暴露 Key 或完整服务地址。"""
-    if os.environ.get("DEEPSEEK_API_KEY"):
-        provider = "deepseek"
-    elif os.environ.get("OPENAI_API_KEY"):
-        provider = "openai_compatible"
-    else:
-        provider = "none"
+    key, provider, credential_source = _active_api_key()
     return {
-        "available": llm_available(),
+        "available": bool(key),
         "provider": provider,
         "model": os.environ.get("AGENT_LAYER_LLM_MODEL", "deepseek-chat"),
+        "credential_source": credential_source,
     }
 
 
@@ -79,12 +110,11 @@ def call_llm(
     temperature: float = 0.3,
     response_format: dict[str, Any] | None = None,
 ) -> str:
-    key = os.environ.get("DEEPSEEK_API_KEY") or os.environ.get("OPENAI_API_KEY")
+    key, provider, _ = _active_api_key()
     if not key:
         raise LLMProviderError("LLM_NOT_CONFIGURED", "未配置 LLM API Key")
 
     base = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-    provider = "deepseek" if os.environ.get("DEEPSEEK_API_KEY") else "openai_compatible"
     model = os.environ.get("AGENT_LAYER_LLM_MODEL", "deepseek-chat")
     timeout = max(5.0, min(float(os.environ.get("AGENT_LAYER_LLM_TIMEOUT", "60")), 120.0))
     max_retries = max(0, min(int(os.environ.get("AGENT_LAYER_LLM_MAX_RETRIES", "1")), 3))

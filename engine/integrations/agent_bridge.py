@@ -17,6 +17,7 @@ from agent_layer import create_runtime  # noqa: E402
 from agent_layer.contracts import AgentMode  # noqa: E402
 from agent_layer.impl.factor_agent import propose_with_factor_agent  # noqa: E402
 from agent_layer.impl.llm import llm_status  # noqa: E402
+from agent_layer.impl.offline_cache import offline_cache_status  # noqa: E402
 from engine.integrations.quantskills_backtest import get_meta, run_backtest_query  # noqa: E402
 from backtest.factor_config import factor_config_meta  # noqa: E402
 
@@ -56,7 +57,13 @@ def list_presets() -> list[dict[str, str]]:
 
 
 def get_factor_config_meta() -> dict[str, Any]:
-    return {**factor_config_meta(), "agent": llm_status()}
+    return {
+        **factor_config_meta(),
+        "agent": {
+            **llm_status(),
+            "offline_cache": offline_cache_status(),
+        },
+    }
 
 
 def propose_agent_factor_config(

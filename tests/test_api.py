@@ -7,6 +7,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 import engine.api.main as api_main
+from agent_layer.impl.llm import clear_runtime_api_key
 
 
 app = api_main.app
@@ -16,6 +17,9 @@ class TestBacktestApi(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.client = TestClient(app)
+
+    def tearDown(self):
+        clear_runtime_api_key()
 
     def test_health_contract(self):
         response = self.client.get("/api/health")
@@ -34,6 +38,42 @@ class TestBacktestApi(unittest.TestCase):
         self.assertIn("available", payload["agent"])
         self.assertIn("provider", payload["agent"])
         self.assertIn("model", payload["agent"])
+        self.assertTrue(payload["agent"]["offline_cache"]["available"])
+        self.assertGreaterEqual(payload["agent"]["offline_cache"]["response_count"], 1)
+
+    def test_page_can_configure_and_clear_process_memory_api_key(self):
+        secret = "test-runtime-secret-never-return"
+        with patch.dict(
+            "os.environ",
+            {"DEEPSEEK_API_KEY": "", "OPENAI_API_KEY": ""},
+            clear=False,
+        ):
+            configured = self.client.put(
+                "/api/agent/credentials", json={"api_key": secret}
+            )
+            self.assertEqual(configured.status_code, 200, configured.text)
+            self.assertTrue(configured.json()["agent"]["available"])
+            self.assertEqual(
+                configured.json()["agent"]["credential_source"], "runtime"
+            )
+            self.assertNotIn(secret, configured.text)
+
+            status = self.client.get("/api/agent/factor-config")
+            self.assertEqual(status.json()["agent"]["credential_source"], "runtime")
+            self.assertNotIn(secret, status.text)
+
+            cleared = self.client.delete("/api/agent/credentials")
+            self.assertEqual(cleared.status_code, 200, cleared.text)
+            self.assertFalse(cleared.json()["agent"]["available"])
+            self.assertEqual(cleared.json()["agent"]["credential_source"], "none")
+
+    def test_short_page_api_key_is_rejected_without_echoing_value(self):
+        secret = "too-short"
+        response = self.client.put(
+            "/api/agent/credentials", json={"api_key": secret}
+        )
+        self.assertEqual(response.status_code, 422)
+        self.assertNotIn(secret, response.text)
 
     def test_factor_config_proposal_requires_confirmation_and_validates_input(self):
         response = self.client.post(
@@ -58,6 +98,28 @@ class TestBacktestApi(unittest.TestCase):
             response.json()["config"]["roles"]["策略分析师"]["module_params"]["target_vol"],
             0.10,
         )
+
+        with patch.dict(
+            "os.environ",
+            {"DEEPSEEK_API_KEY": "", "OPENAI_API_KEY": ""},
+            clear=False,
+        ):
+            cached = self.client.post(
+                "/api/agent/factor-config",
+                json={
+                    "text": "我计划中长期持有，希望优先控制最大回撤并加强风控。",
+                    "mode": "llm",
+                    "quick_preferences": {
+                        "risk_level": "稳健",
+                        "objectives": ["控制回撤"],
+                        "focus_roles": ["风控分析师"],
+                    },
+                },
+            )
+        self.assertEqual(cached.status_code, 200, cached.text)
+        self.assertEqual(cached.json()["source"], "agent_cache")
+        self.assertEqual(cached.json()["cache"]["id"], "steady_drawdown_control")
+        self.assertTrue(cached.json()["changes"])
 
         invalid = self.client.post(
             "/api/agent/factor-config",

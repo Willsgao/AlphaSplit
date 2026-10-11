@@ -21,3 +21,19 @@ backtest/reports/
 .pytest_cache/
 data/processed/hs300_daily_all.csv
 docs/_review_doc_extract.txt
+
+# Local review, rendering, packaging, and IDE artifacts
+.codex-*/
+.tmp_*
+_doc_review_extract/
+_doc_review_render/
+docx_qa/
+submission/
+*.tmp
+
+# Generated presentation QA images are reproducible from the HTML source
+决赛答辩PPT_高玉伟三页_HTML/rendered_slides/
+决赛答辩PPT_高玉伟三页_HTML/docx_render/
+
+# Retained locally for compatibility; the repository exposes one Windows launcher.
+双击启动AlphaSplit.bat

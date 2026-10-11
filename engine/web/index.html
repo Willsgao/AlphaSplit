@@ -4,19 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AlphaSplit — Alpha is earned. Value should be split.</title>
-  <script>
-    (function () {
-      var themes = ["roadshow", "warm", "dark"];
-      var t = localStorage.getItem("alphasplit-theme") || "dark";
-      if (themes.indexOf(t) < 0) t = "warm";
-      document.documentElement.setAttribute("data-theme", t);
-    })();
-  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script src="/static/echarts.min.js"></script>
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/style.css?v=20260828-agent-mode" />
   <link rel="stylesheet" href="/static/premium.css" />
   <link rel="stylesheet" href="/static/fintech.css" />
 </head>
@@ -25,7 +16,7 @@
   <header class="top">
     <div class="brand">
       <span class="logo">AlphaSplit</span>
-      <span class="tag">贡献可计量 · 价值应共享</span>
+      <span class="tag">分配更合理 · 协作更积极 · 决策有依据</span>
     </div>
     <div class="top-actions">
       <button id="btnDevMode" class="btn-dev-toggle" type="button" title="显示回测参数、技术日志等专业选项">专业模式</button>
@@ -47,14 +38,14 @@
         <div class="roadshow-questions">
           <span class="roadshow-q" data-q="1">① 各岗位贡献多少？</span>
           <span class="roadshow-q" data-q="2">② 夏普利依据是什么？</span>
-          <span class="roadshow-q" data-q="3">③ 6:4 如何人工确认？</span>
+          <span class="roadshow-q" data-q="3">③ 评审委员会如何决策？</span>
         </div>
       </div>
     </div>
     <section class="hero-premium">
-      <p class="hero-eyebrow">AlphaSplit · 投研贡献计量平台</p>
-      <h1>岗位贡献，可计量、可解释<span class="compliance-pill">支持广义价值分配</span></h1>
-      <p class="hero-lead">基于 HS300 真实数据的夏普利反事实回测，输出各角色边际贡献 → <span class="accent">人工确认后</span>方可应用。</p>
+      <p class="hero-eyebrow">AlphaSplit · 投研协作激励与贡献计量平台</p>
+      <h1>合理分配，激活投研协作<span class="compliance-pill">长期促进投资回报改善</span></h1>
+      <p class="hero-lead">以可解释的贡献证据形成更合理的分配机制，调动行业、个股、策略、量化和风控角色的参与积极性，促进投研协同与决策质量提升，并以长期投资回报改善为目标。历史回测不构成收益承诺。</p>
       <div id="heroKpiStrip" class="kpi-strip kpi-strip--empty">
         <div class="kpi-cell">
           <span class="kpi-label">超额收益 <button type="button" class="metric-info-button" data-explain-key="excess_return" aria-label="查看超额收益计算依据" title="查看计算依据">i</button></span>
@@ -109,7 +100,7 @@
         <button type="button" class="journey-step" data-guide-step="apply" data-guide-target="dualPoolPanel">
           <span class="step-ring">4</span>
           <span class="step-label">形成应用建议</span>
-          <span class="step-hint">6:4合成并由人工确认</span>
+          <span class="step-hint">6:4建议交由评审委员会决策</span>
         </button>
       </nav>
       <div class="guide-now" aria-live="polite">
@@ -124,7 +115,7 @@
 
     <nav class="tabs tabs-primary" role="tablist" aria-label="主线功能">
       <button class="tab active" data-tab="backtest">HS300 岗位贡献</button>
-      <button class="tab" data-tab="negotiate">人工确认</button>
+      <button class="tab" data-tab="negotiate">评审决策</button>
     </nav>
 
     <details class="tabs-appendix-wrap" id="appendixTabs">
@@ -152,7 +143,7 @@
         <p class="mission-lead">
           <strong>本演示要回答：</strong>在投研多角色协作下，<em>各岗位对组合超额收益的贡献各占多少、依据是什么</em>。
         </p>
-        <p class="mission-note">产出可解释的贡献系数与回测证据，可用于预算、资源、机会与激励权益等广义分配；<strong>方案须经人工确认</strong>。<span id="backtestModeHint" class="mode-hint"></span></p>
+        <p class="mission-note">产出可解释的贡献系数与回测证据，可用于预算、资源、机会与激励权益等广义分配；<strong>方案须经评审委员会（或机构治理责任人）确认</strong>。<span id="backtestModeHint" class="mode-hint"></span></p>
       </div>
 
       <div id="agentPanel" class="agent-panel advanced-only">
@@ -189,6 +180,30 @@
           </div>
           <span id="factorAgentModeBadge" class="agent-badge">检测模型中</span>
         </div>
+
+        <section id="agentCredentialPanel" class="agent-credential-panel" aria-labelledby="agentModeTitle">
+          <div class="agent-mode-head">
+            <div>
+              <p class="agent-mode-kicker">可选设置</p>
+              <h4 id="agentModeTitle">选择 Agent 运行方式</h4>
+              <p id="agentModeSummary">默认使用内置离线 Agent 缓存，无需 API Key 也能完整体验。</p>
+            </div>
+            <div class="agent-mode-options" role="group" aria-label="Agent 运行方式">
+              <button type="button" id="btnKeepOffline" class="agent-mode-option active" aria-pressed="true">保持离线完整演示</button>
+              <button type="button" id="btnShowAgentKey" class="agent-mode-option" aria-pressed="false" aria-expanded="false" aria-controls="agentCredentialForm">输入 API Key</button>
+            </div>
+          </div>
+          <div id="agentCredentialForm" class="agent-credential-form hidden">
+            <label for="agentApiKey">DeepSeek API Key</label>
+            <div class="agent-credential-controls">
+              <input id="agentApiKey" type="password" maxlength="512" autocomplete="off" spellcheck="false" placeholder="输入 API Key（不会保存到文件或浏览器）" />
+              <button type="button" id="btnSaveAgentKey" class="btn primary">启用在线 Agent</button>
+              <button type="button" id="btnClearAgentKey" class="btn btn-ghost">清除</button>
+            </div>
+            <p id="agentCredentialStatus" class="agent-credential-status" aria-live="polite">不输入也可继续，系统默认使用内置离线 Agent 缓存完整演示。</p>
+            <p class="note">密钥仅保存在当前本地服务的进程内存中；不会写入项目文件或浏览器，重启服务后自动清除。</p>
+          </div>
+        </section>
 
         <div class="factor-agent-layout">
           <section class="factor-chat-shell" aria-label="投资方案对话">
@@ -409,22 +424,22 @@
     <section id="panel-negotiate" class="panel">
       <div class="stage-shell">
       <div class="panel-head">
-        <h2>证据应用 · 人工确认</h2>
-        <button id="btnNegotiate" class="btn primary">开始五角色协商</button>
+        <h2>贡献评审与分配决策</h2>
+        <button id="btnNegotiate" class="btn primary">进入评审委员会决策</button>
       </div>
       <div class="backtest-mission negotiate-mission">
         <p class="mission-lead">
-          <strong>本步要回答：</strong>计量证据如何进入考核与分配讨论？谁来做最终裁决？
+          <strong>本步要回答：</strong>贡献证据如何支持更合理的分配？评审委员会如何独立作出最终决策？
         </p>
         <p class="mission-note">
-          <strong>6:4 双轨</strong>合成表 + <strong>五角色 Agent 协商</strong>（行业 / 个股 / 策略 / 量化 / 风控）；
-          锚点为夏普利证据，<strong>人工确认后</strong>形成可应用的价值分配方案。
+          系统提供<strong>6:4 双轨</strong>合成建议；行业 / 个股 / 策略 / 量化 / 风控角色基于贡献证据陈述意见，
+          仅供评审参考。最终分配由<strong>评审委员会（或机构治理责任人）</strong>独立判断、调整并确认。
         </p>
       </div>
       <div id="dualPoolPanel" class="dual-pool-panel hidden"></div>
-      <h3 class="negotiate-section-title">五角色 Agent 协商</h3>
+      <h3 class="negotiate-section-title">角色贡献陈述（评审参考）</h3>
       <p class="note negotiate-role-hint">
-        请先完成 HS300 回测；协商将读取夏普利证据与制度轨现行分配（60%），五岗位各自陈述主张后形成建议案。
+        请先完成 HS300 回测。五类角色将结合夏普利证据和制度轨输入陈述意见；角色 Agent 不参与最终裁决，其陈述不会改变系统的 6:4 合成建议。
       </p>
       <div id="chatStream" class="chat"></div>
       <div id="settlement" class="settlement hidden"></div>
@@ -440,7 +455,7 @@
         </div>
       </div>
       <p class="technical-lead">
-        本附录只解释前面实际运行的客户方案 Agent、HS300 回测、夏普利归因和人工确认，不引入其他人员或独立示例。
+        本附录只解释前面实际运行的客户方案 Agent、HS300 回测、夏普利归因和评审决策，不引入其他人员或独立示例。
       </p>
 
       <ol class="technical-flow" aria-label="当前系统技术链路">
@@ -448,7 +463,7 @@
         <li><strong>配置校验</strong><span>Agent 仅生成白名单内的因子补丁</span></li>
         <li><strong>组合回测</strong><span>确认后的配置进入五角色 Pipeline</span></li>
         <li><strong>反事实归因</strong><span>32个角色联盟计算边际贡献</span></li>
-        <li><strong>人工应用</strong><span>证据经协商和确认后才能使用</span></li>
+        <li><strong>评审决策</strong><span>角色陈述仅供参考，由评审委员会确认应用</span></li>
       </ol>
 
       <h3 class="technical-heading">五角色与40因子</h3>
@@ -489,7 +504,7 @@
       <div class="technical-governance">
         <h3>证据如何进入最终方案</h3>
         <p><strong>最终方案 = 60% × 制度轨现行方案 + 40% × 夏普利证据轨。</strong></p>
-        <p>客户方案、默认等权方案和沪深300使用同一回测口径对照；结果用于解释配置差异，不构成收益承诺。五角色协商只形成建议，最终由治理责任人确认。</p>
+        <p>客户方案、默认等权方案和沪深300使用同一回测口径对照；结果用于解释配置差异，不构成收益承诺。角色贡献陈述仅供评审参考，不参与建议份额计算；最终方案由评审委员会（或机构治理责任人）独立判断、调整并确认。</p>
       </div>
     </section>
   </main>
@@ -511,6 +526,6 @@
     </aside>
   </div>
 
-  <script src="/static/app.js?v=20260827-backtest-v4"></script>
+  <script src="/static/app.js?v=20260828-agent-mode"></script>
 </body>
 </html>

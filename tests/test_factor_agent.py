@@ -95,6 +95,34 @@ class TestFactorAdjustmentAgent(unittest.TestCase):
 
         self.assertEqual(result["source"], "rule_fallback")
         self.assertIn("DEEPSEEK_API_KEY", result["fallback_reason"])
+        with (
+            patch("agent_layer.impl.factor_agent.llm_available", return_value=False),
+            patch(
+                "agent_layer.impl.factor_agent.llm_status",
+                return_value={"available": False, "provider": "none", "model": "deepseek-chat"},
+            ),
+        ):
+            result = propose_with_factor_agent(
+                text="我计划中长期持有，希望优先控制最大回撤。",
+                current_config=default_factor_config(),
+                quick_preferences={
+                    "risk_level": "稳健",
+                    "objectives": ["控制回撤"],
+                    "focus_roles": ["风控分析师"],
+                },
+                mode="llm",
+            )
+
+        self.assertEqual(result["source"], "agent_cache")
+        self.assertEqual(result["mode"], "offline")
+        self.assertEqual(result["cache"]["id"], "steady_drawdown_control")
+        self.assertFalse(result["cache"]["live_llm_used"])
+        self.assertTrue(result["requires_confirmation"])
+        self.assertEqual(result["audit"]["stages"][1]["status"], "cached")
+        self.assertLessEqual(
+            max(result["config"]["roles"]["风控分析师"]["factor_weights"].values()),
+            0.35,
+        )
 
     def test_timeout_uses_explicit_rule_fallback(self):
         with (

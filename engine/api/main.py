@@ -29,6 +29,7 @@ from engine.agentic.evolution import run_evolution
 from engine.agentic.negotiation import confirm_settlement, run_negotiation
 from engine.agentic.role_negotiation import confirm_role_settlement, run_role_negotiation
 from engine.api.models import (
+    AgentCredentialRequest,
     AgentInterpretRequest,
     AgentFactorConfigRequest,
     AgentPipelineRequest,
@@ -43,6 +44,7 @@ from engine.api.models import (
     SensitivityRequest,
     SimulateRequest,
 )
+from agent_layer.impl.llm import clear_runtime_api_key, configure_runtime_api_key
 from engine.integrations.agent_bridge import (
     interpret_backtest as agent_interpret,
     list_presets as agent_list_presets,
@@ -308,6 +310,29 @@ def api_agent_presets():
 def api_agent_factor_config_meta():
     """五角色默认因子配置与可调整因子元信息。"""
     return {"status": "ok", **get_factor_config_meta()}
+
+
+@app.put("/api/agent/credentials")
+def api_configure_agent_credentials(
+    body: AgentCredentialRequest,
+    x_alphasplit_token: str | None = Header(default=None, alias="X-AlphaSplit-Token"),
+):
+    """为当前服务进程配置模型凭证，不写入磁盘或日志。"""
+    _require_backtest_access(x_alphasplit_token)
+    try:
+        status = configure_runtime_api_key(body.api_key.get_secret_value())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from None
+    return {"status": "ok", "agent": status}
+
+
+@app.delete("/api/agent/credentials")
+def api_clear_agent_credentials(
+    x_alphasplit_token: str | None = Header(default=None, alias="X-AlphaSplit-Token"),
+):
+    """清除页面设置的进程内凭证，恢复环境变量或离线模式。"""
+    _require_backtest_access(x_alphasplit_token)
+    return {"status": "ok", "agent": clear_runtime_api_key()}
 
 
 @app.post("/api/agent/factor-config")

@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-27",
+  "description": "Bundled, reviewed Agent responses for offline competition demonstration. These responses are revalidated against the current factor registry before use.",
+  "responses": [
+    {
+      "id": "steady_drawdown_control",
+      "priority": 100,
+      "match": {
+        "risk_level": "稳健",
+        "objectives": ["控制回撤"]
+      },
+      "response": {
+        "summary": "稳健型中长期方案：优先控制下行波动与回撤，同时保留适度收益弹性",
+        "assistant_message": "我已将稳健、控制回撤和关注风控的偏好转换为一组可审查的因子与风险参数调整。建议先核对变更，再由你确认是否用于回测。",
+        "preferences": {
+          "risk_level": "稳健",
+          "objectives": ["控制回撤"],
+          "focus_roles": ["风控分析师"]
+        },
+        "clarification_needed": false,
+        "clarification_question": null,
+        "factor_changes": [
+          {"role": "风控分析师", "factor": "risk_down_vol_5d", "new_weight": 0.20, "reason": "提高低下行波动信号的重要性，匹配稳健偏好"},
+          {"role": "风控分析师", "factor": "risk_drawdown_5d", "new_weight": 0.20, "reason": "提高低回撤信号的重要性，强化回撤控制"},
+          {"role": "风控分析师", "factor": "risk_rvol_10d", "new_weight": 0.16, "reason": "增加中短期波动约束，减少仅依赖单一风险窗口"},
+          {"role": "策略分析师", "factor": "str_rvol_5d", "new_weight": 0.16, "reason": "在策略层提高低波动信号权重，保留收益弹性的同时控制风险"}
+        ],
+        "module_changes": [
+          {"role": "策略分析师", "parameter": "target_vol", "new_value": 0.10, "reason": "稳健方案下调目标波动率"},
+          {"role": "风控分析师", "parameter": "max_single", "new_value": 0.08, "reason": "适度降低单股集中度上限"},
+          {"role": "风控分析师", "parameter": "max_industry", "new_value": 0.25, "reason": "适度降低单一行业集中度上限"}
+        ]
+      }
+    },
+    {
+      "id": "balanced_excess_return",
+      "priority": 80,
+      "match": {
+        "risk_level": "均衡",
+        "objectives": ["获取超额"]
+      },
+      "response": {
+        "summary": "均衡型超额收益方案：兼顾行业趋势、个股质量与量价确认",
+        "assistant_message": "我已把均衡风险和获取超额的目标映射为跨角色配置建议，避免把判断集中在单一信号上。",
+        "preferences": {"risk_level": "均衡", "objectives": ["获取超额"], "focus_roles": []},
+        "clarification_needed": false,
+        "clarification_question": null,
+        "factor_changes": [
+          {"role": "行业分析师", "factor": "ind_momentum_10d", "new_weight": 0.17, "reason": "增强中短期行业趋势识别"},
+          {"role": "行业分析师", "factor": "ind_efficiency_5d", "new_weight": 0.16, "reason": "偏向运行效率更高的行业趋势"},
+          {"role": "个股分析师", "factor": "stk_drawdown_5d", "new_weight": 0.16, "reason": "在争取超额时保留个股回撤约束"},
+          {"role": "量化分析师", "factor": "quant_dollar_5d", "new_weight": 0.16, "reason": "提高流动性与可交易性确认"},
+          {"role": "量化分析师", "factor": "quant_pv_corr_5d", "new_weight": 0.16, "reason": "增加量价一致性验证"}
+        ],
+        "module_changes": []
+      }
+    },
+    {
+      "id": "growth_trend",
+      "priority": 70,
+      "match": {
+        "risk_level": "进取",
+        "objectives": ["趋势交易"]
+      },
+      "response": {
+        "summary": "进取型趋势方案：提高行业动量、突破与量能确认的权重",
+        "assistant_message": "我已生成偏进取的趋势配置建议，并保留单股和行业上限；该方案仍需人工确认后才会进入回测。",
+        "preferences": {"risk_level": "进取", "objectives": ["趋势交易"], "focus_roles": ["行业分析师", "量化分析师"]},
+        "clarification_needed": false,
+        "clarification_question": null,
+        "factor_changes": [
+          {"role": "行业分析师", "factor": "ind_momentum_5d", "new_weight": 0.18, "reason": "提高短期行业动量敏感度"},
+          {"role": "行业分析师", "factor": "ind_trend_5d", "new_weight": 0.18, "reason": "强化波动调整后的趋势信号"},
+          {"role": "行业分析师", "factor": "ind_breakout_5d", "new_weight": 0.18, "reason": "增强突破确认"},
+          {"role": "量化分析师", "factor": "quant_vol_ratio_5d", "new_weight": 0.18, "reason": "用成交量扩张确认趋势"},
+          {"role": "量化分析师", "factor": "quant_ts_close_5d", "new_weight": 0.18, "reason": "提高价格时序强度权重"}
+        ],
+        "module_changes": [
+          {"role": "策略分析师", "parameter": "target_vol", "new_value": 0.20, "reason": "进取偏好允许更高目标波动"},
+          {"role": "策略分析师", "parameter": "defensive_position_cap", "new_value": 0.75, "reason": "趋势成立时保留更高风险仓位上限"}
+        ]
+      }
+    },
+    {
+      "id": "industry_rotation",
+      "priority": 90,
+      "match": {
+        "objectives": ["行业轮动"]
+      },
+      "response": {
+        "summary": "行业轮动方案：强调行业趋势效率并收敛候选行业数量",
+        "assistant_message": "我已将行业轮动目标转换为行业趋势、效率和量能确认建议，最终配置仍需人工确认。",
+        "preferences": {"risk_level": "均衡", "objectives": ["行业轮动"], "focus_roles": ["行业分析师"]},
+        "clarification_needed": false,
+        "clarification_question": null,
+        "factor_changes": [
+          {"role": "行业分析师", "factor": "ind_momentum_10d", "new_weight": 0.18, "reason": "提高行业中短期动量识别"},
+          {"role": "行业分析师", "factor": "ind_trend_5d", "new_weight": 0.18, "reason": "增强行业趋势强度判断"},
+          {"role": "行业分析师", "factor": "ind_efficiency_5d", "new_weight": 0.18, "reason": "优先选择运行方向更稳定的行业"},
+          {"role": "量化分析师", "factor": "quant_vol_ratio_5d", "new_weight": 0.16, "reason": "使用量能扩张辅助确认轮动信号"}
+        ],
+        "module_changes": [
+          {"role": "行业分析师", "parameter": "top_industries", "new_value": 3, "reason": "收敛行业范围以突出轮动主线"}
+        ]
+      }
+    }
+  ]
+}

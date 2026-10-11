@@ -15,7 +15,7 @@ from docx.shared import Inches, Pt, RGBColor
 
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "docs" / "AlphaSplit_完整技术文档_优化版_v1.0.docx"
+OUT = ROOT / "docs" / "AlphaSplit_完整技术文档_初赛提交版_v1.3.docx"
 ASSET_DIR = ROOT / "docs" / "_full_tech_doc_assets_v1"
 DEMO_JSON = ROOT / "engine" / "web" / "demo" / "backtest_demo.json"
 
@@ -538,7 +538,7 @@ def draw_flow(path: Path, title: str, steps: list[tuple[str, str]], colors: list
 
 def draw_architecture(path: Path):
     layers = [
-        ("交互与治理层", "四步自助流程 · 数据依据 · 三方对照 · 五角色协商 · 人工确认", CYAN),
+        ("交互与治理层", "四步自助流程 · 数据依据 · 三方对照 · 角色陈述参考 · 评审决策", CYAN),
         ("Agent 编排层", "DeepSeek结构化建议 · 规则降级 · 查询规划 · 证据约束解读", PURPLE),
         ("金融计算层", "40因子评分 · 月度调仓 · 风控投影 · 交易成本 · 32联盟Shapley", BLUE),
         ("数据与审计层", "HS300行情 · 行业映射 · 120日预热 · 缓存版本 · 月度诊断", GREEN),
@@ -599,7 +599,7 @@ def draw_governance(path: Path):
     boxes = [
         (110, 230, 590, 575, "制度轨 60%", "沿用机构现行方案\n保留治理连续性", BLUE),
         (755, 230, 1235, 575, "证据轨 40%", "正向Shapley形成建议权重\n单角色上限50%", CYAN),
-        (1400, 230, 1990, 575, "最终合成 100%", "五角色协商陈述\n治理责任人最终确认", GREEN),
+        (1400, 230, 1990, 575, "评审建议 100%", "角色陈述仅供参考\n评审委员会最终决策", GREEN),
     ]
     for x0, y0, x1, y1, title, body, color in boxes:
         d.rounded_rectangle((x0, y0, x1, y1), radius=32, fill="#F7FAFC", outline=f"#{color}", width=5)
@@ -641,7 +641,7 @@ def make_figures(demo: dict) -> dict[str, Path]:
         ("确认方案", "Agent生成白名单\n因子参数补丁"),
         ("真实回测", "优化方案 / 基线 /\nHS300同口径"),
         ("贡献计量", "32联盟反事实\n精确Shapley"),
-        ("治理应用", "6:4双轨 +\n人工确认"),
+        ("评审决策", "6:4建议 +\n角色陈述参考"),
     ])
     draw_architecture(paths["fig02_architecture.png"])
     draw_role_map(paths["fig03_role_map.png"])
@@ -862,15 +862,15 @@ def build_document() -> Path:
     p.paragraph_format.space_after = Pt(18)
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    font_run(p.add_run("投研贡献计量与广义价值分配平台"), size=28, bold=True, color=NAVY)
+    font_run(p.add_run("投研协作激励与贡献计量平台"), size=28, bold=True, color=NAVY)
     p.paragraph_format.space_after = Pt(8)
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    font_run(p.add_run("完整技术文档 · 优化版"), size=16, bold=True, color=BLUE)
+    font_run(p.add_run("完整技术文档 · 初赛提交版"), size=16, bold=True, color=BLUE)
     p.paragraph_format.space_after = Pt(16)
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    font_run(p.add_run("贡献可计量 · 证据可解释 · 方案可协商 · 应用须确认"), size=11, color=MUTED)
+    font_run(p.add_run("合理分配激励协作 · 证据可解释 · 决策由评审委员会确认"), size=11, color=MUTED)
     p.paragraph_format.space_after = Pt(34)
     add_figure(doc, figs["fig01_solution.png"], "项目技术闭环概览", width=6.25,
                alt_text="客户描述需求，经Agent确认方案、真实回测、Shapley贡献计量和人工治理应用的五步流程")
@@ -880,21 +880,22 @@ def build_document() -> Path:
     font_run(p.add_run("第五届中国研究生金融科技创新大赛"), size=10.5, bold=True, color=NAVY)
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    font_run(p.add_run("版本：v1.0  |  技术口径日期：2026年8月27日"), size=9.5, color=MUTED)
+    font_run(p.add_run("技术口径日期：2026年8月27日"), size=9.5, color=MUTED)
 
     # Abstract and contents
     doc.add_page_break()
     h = doc.add_paragraph(style="Heading 1")
     h.paragraph_format.space_before = Pt(0)
     font_run(h.add_run("摘要"), size=18, bold=True, color=NAVY)
-    add_body(doc, "AlphaSplit 是面向资产管理投研协作场景的贡献计量与治理支持平台。系统把行业、个股、策略、量化、风控五类角色作为合作博弈参与者，用40个登记因子和少量模块参数表达其决策输入；再通过统一数据、统一成本和统一调仓口径下的32个角色联盟反事实回测，计算各角色对组合相对沪深300超额收益的Shapley边际贡献。")
+    add_body(doc, "AlphaSplit 是面向资产管理投研协作场景的协作激励、贡献计量与治理支持平台。项目以更合理的分配机制为手段，用可解释贡献证据调动行业、个股、策略、量化、风控五类角色的参与积极性，促进投研协同与决策质量提升，并以长期投资回报改善为目标。历史回测用于形成证据，不构成收益承诺。")
+    add_body(doc, "系统把五类角色作为合作博弈参与者，用40个登记因子和少量模块参数表达其决策输入；再通过统一数据、统一成本和统一调仓口径下的32个角色联盟反事实回测，计算各角色对组合相对沪深300超额收益的Shapley边际贡献。")
     add_body(doc, "平台同时引入受约束Agent交互：用户可通过快捷选择和自然语言描述投资偏好，DeepSeek仅负责生成结构化因子配置建议；角色白名单、因子边界、归一化、组合构建、收益计算与贡献计量均由确定性程序完成。配置须经过人工确认才进入实时回测，结果须经过证据白名单校验才进入解读和治理环节。")
-    add_body(doc, "本版以优化后的 portfolio-v7-20260827 引擎为事实基线。官方验证区间为2024年7月至2025年6月：优化策略累计收益22.67%，沪深300累计收益13.70%，超额收益8.96%，夏普比率1.24，最大回撤-5.89%；32个联盟全部完成，Shapley合计与组合超额收益一致。跨区间实验保留了负收益和负超额结果，明确不将单一区间表现解释为未来收益保证。")
+    add_body(doc, "本版以当前提交代码中的最终引擎实现为事实基线。官方验证区间为2024年7月至2025年6月：优化策略累计收益22.67%，沪深300累计收益13.70%，超额收益8.96%，夏普比率1.24，最大回撤-5.89%；32个联盟全部完成，Shapley合计与组合超额收益一致。跨区间实验保留了负收益和负超额结果，明确不将单一区间表现解释为未来收益保证。")
     add_callout(doc, "关键词", "投研贡献计量；合作博弈；Shapley值；反事实回测；多智能体规划；因子配置；可解释金融；人工确认；广义价值分配。", fill=LIGHT_GOLD, accent=GOLD)
 
     doc.add_paragraph(style="Heading 2").add_run("版本事实基线")
     add_table(doc, ["项目", "当前口径", "核验状态"], [
-        ["回测引擎", "portfolio-v7-20260827", "缓存键隔离旧算法"],
+        ["回测引擎", "当前提交代码中的最终实现", "收益、风险与归因口径一致"],
         ["默认配置", "diversified_defensive_v4 / version 4", "五角色各8因子"],
         ["主验证区间", "2024-07-01 至 2025-06-30", "真实月度收益路径"],
         ["对照对象", "优化策略 / 严格旧参数基线 / 沪深300", "同日期、同成本、同基准"],
@@ -907,7 +908,7 @@ def build_document() -> Path:
         ["第2章", "系统架构、角色建模与40因子库"],
         ["第3章", "特征函数、反事实回测与Shapley计量"],
         ["第4章", "Agent规划、客户方案生成与人机协同"],
-        ["第5章", "贡献证据、双轨治理与人工确认"],
+        ["第5章", "贡献证据、双轨治理与评审委员会决策"],
         ["第6章", "实验结果、收益修复与工程验证"],
         ["附录", "接口、配置、复现命令与参考资料"],
     ]
@@ -915,10 +916,11 @@ def build_document() -> Path:
 
     # Chapter 1
     chapter_start(doc, "Chapter 01", "第1章  问题定义、设计目标与解题思路",
-                  "把传统资产与因子归因推进到组织角色层，在不让大模型生成金融事实的前提下，形成可计量、可解释、可复现、可协商的贡献证据。")
+                  "把传统资产与因子归因推进到组织角色层，以合理分配激励投研协作；在不让大模型生成金融事实的前提下，形成可计量、可解释、可复现的贡献证据。")
     doc.add_paragraph(style="Heading 2").add_run("1.1 应用场景与核心问题")
     add_body(doc, "资产管理产品的结果往往由行业配置、个股研究、仓位择时、量价执行和风险约束共同产生。传统归因可以说明收益来自行业、风格或因子，却难以回答这些决策输入分别由哪些组织角色贡献、角色之间如何协同，以及结果如何进入资源配置和治理讨论。")
-    add_body(doc, "AlphaSplit聚焦的不是“给一个最终分配数字”，而是构造一条可审计的证据链：角色决策输入如何被因子代理、参数如何进入组合、某角色缺席时组合如何变化、边际贡献如何汇总、治理责任人为何采纳或调整建议。")
+    add_body(doc, "AlphaSplit聚焦的不是“给一个最终分配数字”，而是通过可审计的贡献证据形成更合理的分配机制，以调动各角色参与积极性、促进投研协同与决策质量提升，并以长期投资回报改善为目标。分配是组织激励的手段，不是项目的终点。")
+    add_body(doc, "证据链回答：角色决策输入如何被因子代理、参数如何进入组合、某角色缺席时组合如何变化、边际贡献如何汇总，以及评审委员会（或机构治理责任人）为何采纳或调整建议。")
     for text in [
         "归因对象缺口：Brinson、Barra和风格归因的对象主要是资产或风险暴露，不直接对应组织角色。",
         "多角色交互：策略、量化和风控常依赖上游选股结果，简单地“去掉一个角色”无法完整分摊交互效应。",
@@ -931,7 +933,7 @@ def build_document() -> Path:
     add_numbered(doc, "资产与市场层：以HS300真实行情、行业映射和公开量价因子构造可复现的投资组合。", decimal_id)
     add_numbered(doc, "决策链映射层：建立“角色—决策职责—因子/参数”映射，使角色参与与否具有可执行含义。", decimal_id)
     add_numbered(doc, "角色贡献层：枚举32个联盟，在控制变量条件下计算特征函数v(S)，再用精确Shapley值分摊交互贡献。", decimal_id)
-    add_numbered(doc, "治理应用层：把带符号贡献转为证据轨建议权重，与制度轨按6:4合成，经五角色陈述和人工确认后形成应用建议。", decimal_id)
+    add_numbered(doc, "治理应用层：把带符号贡献转为证据轨建议权重，与制度轨按6:4合成；五角色陈述仅供参考，最终由评审委员会独立判断、调整并确认。", decimal_id)
     add_figure(doc, figs["fig01_solution.png"], "图1-1  AlphaSplit解题思路与应用闭环", alt_text="AlphaSplit五步技术闭环")
 
     doc.add_paragraph(style="Heading 2").add_run("1.3 设计目标")
@@ -939,7 +941,7 @@ def build_document() -> Path:
         ["可计量", "输出带符号角色贡献，并能还原组合超额收益", "Σφᵢ = R组合 - RHS300"],
         ["可解释", "每个指标均展示定义、公式、区间、字段和局限", "前端数据依据面板与证据编号"],
         ["可复现", "数据、因子、配置、版本和成本口径可追踪", "request_id、config_id、engine_version"],
-        ["可协商", "算法结果是治理锚点，不是自动裁决", "建议预览、角色协商、人工确认"],
+        ["可治理", "算法结果是量化建议，不是自动裁决", "角色陈述参考、评审委员会独立确认"],
         ["可演示", "路演可秒开真实预跑结果，且标明来源", "预制包与实时回测明确区分"],
     ], [1500, 4200, 3660])
 
@@ -952,9 +954,9 @@ def build_document() -> Path:
                   "系统按交互治理、Agent编排、金融计算、数据审计四层解耦；五角色各配置8个因子，所有配置在进入回测前经过登记、方向和边界校验。")
     doc.add_paragraph(style="Heading 2").add_run("2.1 总体架构")
     add_figure(doc, figs["fig02_architecture.png"], "图2-1  AlphaSplit分层架构", alt_text="AlphaSplit四层软件架构")
-    add_body(doc, "交互与治理层由FastAPI静态Web页面承载，提供四步自助流程、三方收益对照、指标依据抽屉、五角色协商和人工确认。Agent编排层负责意图理解、结构化配置建议、查询规划和证据约束解读。金融计算层完成因子评分、组合构建、成本计算和全联盟Shapley；数据与审计层提供HS300行情、缓存版本和逐月诊断。")
+    add_body(doc, "交互与治理层由FastAPI静态Web页面承载，提供四步自助流程、三方收益对照、指标依据抽屉、角色贡献陈述参考和评审委员会分配决策。Agent编排层负责意图理解、结构化配置建议、查询规划和证据约束解读。金融计算层完成因子评分、组合构建、成本计算和全联盟Shapley；数据与审计层提供HS300行情、版本标识和逐月诊断。")
     add_table(doc, ["层级", "主要模块", "职责"], [
-        ["交互与治理", "engine/web、engine/agentic", "引导流程、图表、协商、6:4合成与人工确认"],
+        ["交互与治理", "engine/web、engine/agentic", "引导流程、图表、角色陈述参考、6:4建议与评审决策"],
         ["Agent编排", "agent_layer、engine/integrations/agent_bridge.py", "规划、因子建议、证据白名单与结果解读"],
         ["金融计算", "backtest/query_engine.py 等", "40因子、五角色Pipeline、交易成本、32联盟Shapley"],
         ["API与保护", "engine/api", "结构化模型、SSE、单任务互斥、可选Token保护"],
@@ -1041,7 +1043,7 @@ def build_document() -> Path:
         ["因子配置Agent", "偏好选项、自由文字、当前配置", "白名单因子/模块参数补丁", "自由创造因子；绕过边界；自动生效"],
         ["规划Agent", "自然语言或路演预设", "结构化时间、基准、角色与调仓计划", "直接计算金融指标"],
         ["解读Agent", "证据白名单与证据编号", "带依据的摘要、风险提示", "引用未知证据；承诺未来收益"],
-        ["五角色协商", "贡献、证据轨、最终合成锚点", "角色主张与确认建议", "把协商结果自动执行"],
+        ["角色贡献陈述", "贡献、证据轨、6:4合成建议", "仅供评审参考的角色意见", "参与建议份额计算或最终裁决"],
     ], [1800, 2600, 2800, 2160], small=True)
 
     doc.add_paragraph(style="Heading 2").add_run("4.2 DeepSeek受约束配置闭环")
@@ -1054,7 +1056,7 @@ def build_document() -> Path:
     add_numbered(doc, "已确认factor_config随实时回测请求进入确定性引擎；预制模式只回放匹配的真实预跑结果。", decimal_id)
 
     doc.add_paragraph(style="Heading 2").add_run("4.3 降级、重试与审计")
-    add_body(doc, "API Key仅从服务端环境变量DEEPSEEK_API_KEY读取。调用采用有限重试；若JSON Schema响应格式不被支持，则降级到JSON Object，但不会从自由文本中用正则猜测JSON。超时、JSON错误、越界或模型不可用时，系统明确返回rule_fallback及原因，不把规则结果伪装成大模型结果。")
+    add_body(doc, "API Key可在页面中选填，也可通过服务端环境变量DEEPSEEK_API_KEY配置。页面输入的Key仅保存在当前本地服务进程内存中，不写入项目文件、浏览器存储、日志或接口响应，服务重启后自动清除；不输入时默认使用随包提供且重新经过约束校验的离线Agent缓存。模型调用采用有限重试；若JSON Schema响应格式不被支持，则降级到JSON Object，但不会从自由文本中用正则猜测JSON。超时、JSON错误、越界或模型不可用时，系统明确返回rule_fallback及原因，不把规则结果伪装成大模型结果。")
     add_body(doc, "每次建议记录独立audit_id、配置前后指纹、变更数量、来源、耗时和人工确认状态。日志不记录API Key、完整提示词、完整服务地址或原始错误正文，降低敏感信息泄露风险。")
     add_callout(doc, "收敛条件", "Agent流程不是不断改参数直到历史收益最高，而是在配置合法、解释充分且经人工确认后进入回测。反复根据同一区间收益调参会造成样本内过拟合，系统应明确阻止这种叙述。", fill=LIGHT_GOLD, accent=GOLD)
 
@@ -1063,7 +1065,7 @@ def build_document() -> Path:
         ["1 描述需求", "选择偏好或与Agent对话", "结构化配置建议", "建议生成成功"],
         ["2 确认方案", "检查变更与理由并确认", "已确认factor_config", "人工确认完成"],
         ["3 回测理解", "预制快速体验或实时回测", "三方曲线、指标和贡献证据", "回测结果有效"],
-        ["4 应用建议", "进入五角色协商与双轨合成", "最终建议与确认记录", "治理责任人确认"],
+        ["4 分配决策", "查看双轨建议与角色参考意见", "评审建议与决策记录", "评审委员会确认"],
     ], [1400, 2800, 3000, 2160])
     add_body(doc, "路演默认推荐“使用预制数据快速体验”。预制包来自同一真实引擎的完整预跑，包含优化策略、严格旧参数基线和HS300同日期月度曲线；它不是Mock，也不会声称回放的是任意现场临时生成配置。实时回测适用于验证已确认的客户专属配置，耗时取决于数据和32联盟计算。")
 
@@ -1072,8 +1074,8 @@ def build_document() -> Path:
     add_body(doc, "前端每个核心指标提供“数据依据”：显示定义、公式、本次代入、时间区间、基准、后端字段、request_id、config_id和使用局限。这使页面上的22.67%、8.96%、1.24和-5.89%都能被追溯，而不是孤立展示。")
 
     # Chapter 5
-    chapter_start(doc, "Chapter 05", "第5章  贡献证据、双轨治理与人工确认",
-                  "带符号Shapley用于解释角色对超额收益的边际影响；只有正向贡献进入证据轨建议权重，再与制度轨按6:4合成，最终由治理责任人确认。")
+    chapter_start(doc, "Chapter 05", "第5章  贡献证据、双轨治理与评审委员会决策",
+                  "带符号Shapley用于解释角色对超额收益的边际影响；只有正向贡献进入证据轨建议权重，再与制度轨按6:4合成。角色陈述仅供参考，最终由评审委员会独立决策。")
     doc.add_paragraph(style="Heading 2").add_run("5.1 从带符号贡献到证据轨权重")
     add_body(doc, "role_breakdown.shapley_raw保留正负符号。正值说明该角色在所有联盟中的平均边际作用提高了组合超额收益，负值说明在当前区间与当前设定下形成拖累。负贡献不是程序错误，也不应通过更换样本或反复调参强行改成正值。")
     add_body(doc, "证据轨weight仅使用正向Shapley，并设置单角色50%上限。若某角色先达到上限，剩余权重通过水位法分配给其他正贡献角色。因此，Shapley贡献占比与证据轨建议权重不是同一概念。")
@@ -1082,7 +1084,7 @@ def build_document() -> Path:
     doc.add_paragraph(style="Heading 2").add_run("5.2 6:4双轨机制")
     add_equation(doc, "Final_i = 60% × Institutional_i + 40% × Evidence_i")
     add_figure(doc, figs["fig07_governance.png"], "图5-2  制度轨、证据轨与最终合成", alt_text="6比4双轨治理流程")
-    add_body(doc, "制度轨内部比例、证据轨内部比例和最终合成比例必须在前端明确区分。五角色协商处理的是已经包含60%制度轨和40%证据轨的最终合成锚点，而不是只对40%证据轨再次分配。")
+    add_body(doc, "制度轨内部比例、证据轨内部比例和6:4合成建议必须在前端明确区分。角色贡献陈述以合成建议和贡献证据为参考背景，但不参与建议份额计算；评审委员会（或机构治理责任人）据此独立判断、调整并确认，而不是由角色Agent决定分配。")
     add_table(doc, ["角色", "Shapley贡献", "证据轨内部权重", "制度轨等权时最终比例"], [
         ["行业分析师", "+19.23%", "50.00%", "32.00%"],
         ["个股分析师", "-5.26%", "0.00%", "12.00%"],
@@ -1093,9 +1095,9 @@ def build_document() -> Path:
     ], [1800, 1900, 2400, 3260])
     add_callout(doc, "解释示例", "行业角色的+19.23%大于组合整体+8.96%，是因为个股、量化和风控的负边际贡献抵消了部分行业与策略的正贡献。这正是保留带符号Shapley而不是只看百分比排名的价值。", fill=LIGHT_BLUE, accent=BLUE)
 
-    doc.add_paragraph(style="Heading 2").add_run("5.3 五角色协商与人工确认")
-    add_body(doc, "协商层读取角色贡献、证据轨权重和最终合成锚点，各角色围绕证据陈述主张。行业角色可以说明其主要正贡献来源；负贡献角色可以提出市场阶段、约束成本或后续复盘计划；制度轨确保即使证据轨为0，角色在最终方案中通常仍保留基础份额。")
-    add_body(doc, "最终确认记录应包含原方案、纯证据方案、合成方案、协商摘要、确认人、时间和版本。系统只输出可供治理使用的建议，不直接执行预算、研究资源、项目机会、数据/算力额度或其他资源的划拨。")
+    doc.add_paragraph(style="Heading 2").add_run("5.3 角色贡献陈述与评审委员会决策")
+    add_body(doc, "系统读取角色贡献、证据轨权重和6:4合成建议，组织五类角色基于证据陈述意见。行业角色可以说明其主要正贡献来源；负贡献角色可以提出市场阶段、约束成本或后续复盘计划。这些陈述仅构成评审参考条件，不改变6:4合成建议，也不构成分配决定。")
+    add_body(doc, "评审委员会（或机构治理责任人）是分配决策者，可综合量化证据、角色陈述和机构治理规则独立判断、调整并确认。决策记录应包含原方案、纯证据方案、合成建议、角色参考意见、确认人、时间和版本。系统不直接执行预算、研究资源、项目机会、数据/算力额度或其他资源的划拨。")
 
     doc.add_paragraph(style="Heading 2").add_run("5.4 适用的广义价值分配场景")
     for text in [
@@ -1103,7 +1105,7 @@ def build_document() -> Path:
         "研究资源：分配数据订阅、算力、外部专家和调研额度。",
         "项目机会：决定重点课题、产品孵化和跨团队协作机会。",
         "组织复盘：识别当前市场状态下的正向驱动和负向拖累，形成改进计划。",
-        "治理审计：保留算法证据、协商过程和人工确认记录，支持事后复核。",
+        "治理审计：保留算法证据、角色参考意见和评审委员会决策记录，支持事后复核。",
     ]:
         add_bullet(doc, text, bullet_id)
 
@@ -1185,7 +1187,7 @@ def build_document() -> Path:
 
     # Appendices
     chapter_start(doc, "Appendix A", "附录A  关键接口与数据契约",
-                  "接口按规划、配置、回测、解释、协商和确认分层；所有写入回测的配置必须经过结构化模型与白名单校验。")
+                  "接口按规划、配置、回测、解释、角色陈述和评审确认分层；所有写入回测的配置必须经过结构化模型与白名单校验。")
     add_table(doc, ["接口", "作用", "关键输出"], [
         ["GET /api/health", "服务、模式和引擎可用性检查", "status、mode、version"],
         ["GET /api/agent/factor-config", "返回五角色、40因子和默认配置", "roles、default_config、agent"],
@@ -1195,8 +1197,8 @@ def build_document() -> Path:
         ["POST /api/agent/pipeline", "串联规划、回测和解释", "plan、backtest、interpretation"],
         ["POST /api/backtest/run", "运行已确认配置的完整回测", "overview、role_breakdown、diagnostics"],
         ["GET /api/backtest/demo", "返回真实预跑官方演示包", "comparison、results、source"],
-        ["POST /api/negotiate", "五角色基于最终合成锚点协商", "claims、proposal、status"],
-        ["POST /api/confirm", "人工确认最终应用建议", "confirmed、audit_record"],
+        ["POST /api/negotiate", "生成角色贡献陈述与6:4评审建议（接口名兼容保留）", "claims、proposal、status"],
+        ["POST /api/confirm", "评审委员会确认最终分配决定", "confirmed、audit_record"],
     ], [3000, 3300, 3060], small=True)
 
     doc.add_paragraph(style="Heading 2").add_run("A.1 核心回测结果字段")
@@ -1238,33 +1240,33 @@ def build_document() -> Path:
         "选择预制数据快速体验，展示优化策略、严格基线和HS300三条曲线。",
         "点击指标依据，解释累计收益、超额、夏普、回撤和Shapley来源。",
         "进入应用建议，明确制度轨60%、证据轨40%和最终合成比例。",
-        "启动五角色协商，最后由人工确认，强调系统是决策支持而非自动裁决。",
+        "进入贡献评审：角色陈述仅供参考，6:4建议不受其影响，最后由评审委员会独立确认。",
     ]:
         add_numbered(doc, text, decimal_id)
 
     chapter_start(doc, "References", "参考资料与版本来源",
-                  "本文件综合四份团队章节稿，并以2026年8月27日工作区代码、优化记录和真实演示包作为最终真实性基线。")
+                  "理论依据以公开论文和行业资料为主，实现口径以2026年8月27日随包源码、离线演示数据和自动化测试结果为准。")
     refs = [
-        "AlphaSplit技术文档《第1章：问题定义与解题思路》。",
-        "AlphaSplit技术文档《2、3、5、6章》章节稿。",
-        "AlphaSplit《第4章：多智能体回测规划流程——真实性对齐版》。",
-        "AlphaSplit《技术文档高玉伟章节完善版 v0.4》。",
-        "AlphaSplit《代码优化记录：20260827 回测收益与组合构建修复》。",
-        "工作区源码：backtest/query_engine.py、risk_control_module.py、factor_config.py、timing_module.py。",
-        "工作区演示包：engine/web/demo/backtest_demo.json。",
-        "L. S. Shapley. A Value for n-Person Games. 1953.",
-        "Brinson, Hood, Beebower. Determinants of Portfolio Performance. 1986.",
-        "Portfolio Performance Attribution via Shapley Value, arXiv:2102.05799。",
+        "[1] Shapley, L. S. A Value for n-Person Games. Contributions to the Theory of Games II, 1953, pp. 307-317.",
+        "[2] Brinson, G. P., Hood, L. R., and Beebower, G. L. Determinants of Portfolio Performance. Financial Analysts Journal, 1986, 42(4): 39-44.",
+        "[3] Ghorbani, A., and Zou, J. Data Shapley: Equitable Valuation of Data for Machine Learning. ICML 2019. https://arxiv.org/pdf/1904.02868",
+        "[4] Moehle, N., Boyd, S., and Ang, A. Portfolio Performance Attribution via Shapley Value. 2021. https://arxiv.org/pdf/2102.05799",
+        "[5] Mitchell, R., Cooper, J., Frank, E., and Holmes, G. Sampling Permutations for Shapley Value Estimation. Journal of Machine Learning Research, 2022, 23(43): 1-46. https://jmlr.org/papers/v23/21-0439.html",
+        "[6] Lundberg, S. M., and Lee, S.-I. A Unified Approach to Interpreting Model Predictions. NeurIPS 2017. https://arxiv.org/pdf/1705.07874",
+        "[7] Microsoft Research. RD-Agent: Research and Development Agent. https://github.com/microsoft/RD-Agent (accessed 2026-08-27).",
+        "[8] 海通证券研究所.《Brinson模型的升级：风格绩效归因模型》. 2023-06. https://www.htsec.com/jfimg/colimg/upload/20230703/29131688345186124.pdf",
+        "[9] 实现核验来源：backtest/query_engine.py、risk_control_module.py、factor_config.py、timing_module.py，以及engine/api/main.py。",
+        "[10] 离线演示与复现实例：engine/web/demo/backtest_demo.json；自动化验证见tests/目录。",
     ]
     for item in refs:
         add_numbered(doc, item, decimal_id)
-    add_callout(doc, "版本说明", "若本文件与更早章节稿在收益率、风控参数、特征函数、Agent提供商、测试数量或接口字段上存在冲突，以当前源码、portfolio-v7-20260827和官方演示包为准。", fill=LIGHT_GOLD, accent=GOLD)
+    add_callout(doc, "版本说明", "若本文件与更早章节稿在收益率、风控参数、特征函数、Agent提供商、测试数量或接口字段上存在冲突，以当前提交源码和官方演示包为准。", fill=LIGHT_GOLD, accent=GOLD)
 
-    doc.core_properties.title = "AlphaSplit 投研贡献计量与广义价值分配平台：完整技术文档"
+    doc.core_properties.title = "AlphaSplit 投研协作激励与贡献计量平台：完整技术文档"
     doc.core_properties.subject = "金融科技竞赛项目完整技术文档"
     doc.core_properties.author = "AlphaSplit 项目组"
     doc.core_properties.keywords = "AlphaSplit, Shapley, 反事实回测, Agent, 因子配置, 广义价值分配"
-    doc.core_properties.comments = "基于 portfolio-v7-20260827 与 2026-08-27 真实回测结果整合"
+    doc.core_properties.comments = "基于当前提交源码与2026-08-27真实回测结果整合"
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     doc.save(OUT)

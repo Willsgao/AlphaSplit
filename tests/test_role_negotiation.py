@@ -1,4 +1,4 @@
-"""五角色协商测试。"""
+"""五角色贡献陈述与评审决策测试。"""
 from __future__ import annotations
 
 import json
@@ -27,7 +27,10 @@ class TestRoleNegotiation(unittest.TestCase):
         self.assertEqual(len(out["rounds"][0]["utterances"]), 5)
         opening_text = "\n".join(row["text"] for row in out["rounds"][0]["utterances"])
         self.assertNotIn("主张新池内", opening_text)
-        self.assertIn("总资源池份额", opening_text)
+        self.assertIn("仅供评审参考", opening_text)
+        self.assertEqual(out["proposed_shares"], out["formula_shares"])
+        self.assertIn("评审委员会", out["arbiter_statement"])
+        self.assertIn("不参与建议份额计算", out["arbiter_statement"])
 
     def test_dual_track(self):
         base, new_pool, composite = build_dual_track_weights(self.backtest)

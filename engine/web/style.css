@@ -1178,6 +1178,102 @@ body.backtest-progress-active footer {
   background: var(--surface-inset);
   border: 1px solid var(--line);
 }
+.agent-credential-panel {
+  margin: 0 0 0.85rem;
+  padding: 0.75rem;
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+  background: var(--accent-soft);
+}
+.agent-mode-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+}
+.agent-mode-kicker {
+  margin: 0 0 0.15rem;
+  color: var(--accent);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+.agent-mode-head h4 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.9rem;
+}
+.agent-mode-head p:last-child {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+.agent-mode-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-width: min(100%, 22rem);
+  padding: 0.2rem;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--bg2);
+}
+.agent-mode-option {
+  min-height: 2.2rem;
+  padding: 0.42rem 0.65rem;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.agent-mode-option.active {
+  background: var(--accent);
+  color: var(--bg);
+}
+.agent-mode-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.agent-credential-form {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+.agent-credential-form > label {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--muted);
+  font-size: 0.74rem;
+}
+.agent-credential-controls {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) auto auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+.agent-credential-controls input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.2rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--bg2);
+  font: inherit;
+  font-size: 0.8rem;
+}
+.agent-credential-status {
+  margin: 0.55rem 0 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.agent-credential-status.ok { color: var(--accent); }
+.agent-credential-status.error { color: var(--danger, #d4786a); }
+.agent-credential-form .note { margin: 0.25rem 0 0; font-size: 0.7rem; }
 .factor-agent-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
@@ -1410,6 +1506,10 @@ body.backtest-progress-active footer {
   .factor-role-cards { grid-template-columns: 1fr; }
   .factor-agent-layout { grid-template-columns: 1fr; }
   .factor-pref-group { grid-template-columns: 1fr; gap: 0.2rem; }
+  .agent-mode-head { grid-template-columns: 1fr; gap: 0.65rem; }
+  .agent-mode-options { width: 100%; min-width: 0; }
+  .agent-credential-controls { grid-template-columns: 1fr 1fr; }
+  .agent-credential-controls input { grid-column: 1 / -1; }
 }
 
 .backtest-narrative {

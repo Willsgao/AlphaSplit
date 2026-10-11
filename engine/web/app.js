@@ -69,7 +69,7 @@ function refreshChartTheme() {
   CHART.fill = g("--chart-fill") || CHART.fill;
 }
 
-/** ECharts 统一封装（离线本地 echarts.min.js） */
+/** 原生 Canvas 图表，避免在竞赛提交包中附带公共类库代码。 */
 function destroyChart(key) {
   const chart = state.charts[key];
   if (chart) {
@@ -79,35 +79,287 @@ function destroyChart(key) {
   if (state.chartOptions) delete state.chartOptions[key];
 }
 
-function setEChart(key, selector, option) {
-  if (typeof echarts === "undefined") {
-    console.warn("ECharts 未加载");
-    return null;
+function chartValue(item) {
+  const value = item && typeof item === "object" ? item.value : item;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function chartColor(series, item, fallbackIndex = 0) {
+  return item?.itemStyle?.color || series?.itemStyle?.color || series?.lineStyle?.color ||
+    SENS_COLORS?.[fallbackIndex % SENS_COLORS.length] || "#5b8def";
+}
+
+function drawChartText(ctx, text, x, y, options = {}) {
+  ctx.save();
+  ctx.fillStyle = options.color || CHART.muted;
+  ctx.font = `${options.weight || 400} ${options.size || 11}px "Noto Sans SC", "Segoe UI", sans-serif`;
+  ctx.textAlign = options.align || "center";
+  ctx.textBaseline = options.baseline || "middle";
+  if (options.rotate) {
+    ctx.translate(x, y);
+    ctx.rotate(options.rotate);
+    ctx.fillText(String(text), 0, 0, options.maxWidth);
+  } else {
+    ctx.fillText(String(text), x, y, options.maxWidth);
   }
+  ctx.restore();
+}
+
+class NativeCanvasChart {
+  constructor(element) {
+    this.element = element;
+    this.canvas = document.createElement("canvas");
+    this.canvas.className = "native-chart-canvas";
+    this.canvas.setAttribute("aria-hidden", "true");
+    this.tooltip = document.createElement("div");
+    this.tooltip.className = "native-chart-tooltip hidden";
+    this.element.replaceChildren(this.canvas, this.tooltip);
+    this.context = this.canvas.getContext("2d");
+    this.disposed = false;
+    this.hitColumns = [];
+    this.onMove = (event) => this.showTooltip(event);
+    this.onLeave = () => this.tooltip.classList.add("hidden");
+    this.canvas.addEventListener("mousemove", this.onMove);
+    this.canvas.addEventListener("mouseleave", this.onLeave);
+  }
+
+  getDom() { return this.element; }
+  isDisposed() { return this.disposed; }
+
+  setOption(option) {
+    this.option = option || {};
+    this.resize();
+  }
+
+  resize() {
+    if (this.disposed || !this.option) return;
+    const width = Math.max(280, this.element.clientWidth || 640);
+    const height = Math.max(180, this.element.clientHeight || 280);
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    this.canvas.style.width = `${width}px`;
+    this.canvas.style.height = `${height}px`;
+    this.canvas.width = Math.round(width * ratio);
+    this.canvas.height = Math.round(height * ratio);
+    this.context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    this.draw(width, height);
+  }
+
+  dispose() {
+    this.disposed = true;
+    this.canvas.removeEventListener("mousemove", this.onMove);
+    this.canvas.removeEventListener("mouseleave", this.onLeave);
+    this.element.replaceChildren();
+  }
+
+  draw(width, height) {
+    const ctx = this.context;
+    ctx.clearRect(0, 0, width, height);
+    this.hitColumns = [];
+    if (this.option.title?.text) {
+      drawChartText(ctx, this.option.title.text, width / 2, 17, {
+        color: this.option.title.textStyle?.color || CHART.ink,
+        size: this.option.title.textStyle?.fontSize || 13,
+        weight: 600,
+        maxWidth: width - 24,
+      });
+    }
+    if (this.option.series?.[0]?.type === "pie") {
+      this.drawPie(width, height);
+    } else {
+      this.drawCartesian(width, height);
+    }
+  }
+
+  legendItems() {
+    const configured = this.option.legend?.data;
+    const series = this.option.series || [];
+    if (configured?.length) {
+      return configured.map((name, index) => {
+        const item = series.find((entry) => entry.name === name) || series[index];
+        return { name, color: chartColor(item, null, index) };
+      });
+    }
+    if (series.length === 1 && series[0].type === "pie") {
+      return (series[0].data || []).map((item, index) => ({
+        name: item.name,
+        color: chartColor(series[0], item, index),
+      }));
+    }
+    return series.filter((item) => item.name).map((item, index) => ({
+      name: item.name,
+      color: chartColor(item, null, index),
+    }));
+  }
+
+  drawLegend(width, height) {
+    const items = this.legendItems();
+    if (!items.length || !this.option.legend) return;
+    const top = this.option.legend.top !== undefined;
+    const y = top ? 17 : height - 14;
+    const itemWidth = Math.min(150, Math.max(70, width / items.length));
+    const start = Math.max(12, (width - itemWidth * items.length) / 2);
+    items.forEach((item, index) => {
+      const x = start + itemWidth * index;
+      this.context.fillStyle = item.color;
+      this.context.fillRect(x, y - 4, 12, 8);
+      drawChartText(this.context, item.name, x + 17, y, {
+        align: "left", size: 10, color: CHART.muted, maxWidth: itemWidth - 20,
+      });
+    });
+  }
+
+  drawPie(width, height) {
+    const series = this.option.series[0];
+    const data = series.data || [];
+    const total = data.reduce((sum, item) => sum + Math.max(0, chartValue(item) || 0), 0) || 1;
+    const cx = width / 2;
+    const cy = height / 2 - 4;
+    const outer = Math.min(width, height) * 0.27;
+    const inner = outer * 0.58;
+    let angle = -Math.PI / 2;
+    data.forEach((item, index) => {
+      const next = angle + (Math.max(0, chartValue(item) || 0) / total) * Math.PI * 2;
+      this.context.beginPath();
+      this.context.arc(cx, cy, outer, angle, next);
+      this.context.arc(cx, cy, inner, next, angle, true);
+      this.context.closePath();
+      this.context.fillStyle = chartColor(series, item, index);
+      this.context.fill();
+      angle = next;
+    });
+    drawChartText(this.context, "100%", cx, cy, { color: CHART.ink, size: 15, weight: 600 });
+    this.drawLegend(width, height);
+  }
+
+  drawCartesian(width, height) {
+    const option = this.option;
+    let labels = [...(option.xAxis?.data || [])];
+    let series = (option.series || []).map((entry) => ({ ...entry, data: [...(entry.data || [])] }));
+    const zoom = Array.isArray(option.dataZoom) ? option.dataZoom[0] : null;
+    if (zoom && labels.length > 8) {
+      const start = Math.max(0, Math.floor(labels.length * Number(zoom.start || 0) / 100));
+      labels = labels.slice(start);
+      series = series.map((entry) => ({ ...entry, data: entry.data.slice(start) }));
+    }
+    const grid = option.grid || {};
+    const left = Number(grid.left) || 48;
+    const right = Number(grid.right) || 16;
+    const top = Number(grid.top) || (option.title ? 40 : 16);
+    const bottom = Number(grid.bottom) || (option.legend ? 48 : 32);
+    const plotWidth = Math.max(10, width - left - right);
+    const plotHeight = Math.max(10, height - top - bottom);
+    const values = series.flatMap((entry) => entry.data.map(chartValue)).filter((value) => value !== null);
+    let min = Number.isFinite(Number(option.yAxis?.min)) ? Number(option.yAxis.min) : Math.min(0, ...values);
+    let max = Number.isFinite(Number(option.yAxis?.max)) ? Number(option.yAxis.max) : Math.max(0, ...values);
+    if (min === max) { min -= 1; max += 1; }
+    if (!Number.isFinite(min) || !Number.isFinite(max)) { min = 0; max = 1; }
+    if (option.yAxis?.min === undefined && min < 0) min *= 1.12;
+    if (option.yAxis?.max === undefined && max > 0) max *= 1.12;
+    const yFor = (value) => top + ((max - value) / (max - min)) * plotHeight;
+    const percentAxis = String(option.yAxis?.axisLabel?.formatter || "").includes("%");
+    for (let tick = 0; tick <= 4; tick += 1) {
+      const value = min + ((max - min) * tick) / 4;
+      const y = yFor(value);
+      this.context.strokeStyle = CHART.grid;
+      this.context.lineWidth = 1;
+      this.context.beginPath();
+      this.context.moveTo(left, y);
+      this.context.lineTo(width - right, y);
+      this.context.stroke();
+      drawChartText(this.context, `${value.toFixed(Math.abs(max - min) < 5 ? 1 : 0)}${percentAxis ? "%" : ""}`, left - 7, y, {
+        align: "right", color: CHART.muted, size: 9,
+      });
+    }
+    const step = plotWidth / Math.max(1, labels.length);
+    const barSeries = series.filter((entry) => entry.type === "bar");
+    const lineSeries = series.filter((entry) => entry.type === "line");
+    const zeroY = yFor(Math.max(min, Math.min(max, 0)));
+    labels.forEach((label, index) => {
+      const x = left + step * (index + 0.5);
+      const every = Math.max(1, Math.ceil(labels.length / Math.max(5, Math.floor(plotWidth / 70))));
+      if (index % every === 0 || index === labels.length - 1) {
+        drawChartText(this.context, label, x, height - bottom + 13, {
+          color: CHART.muted,
+          size: option.xAxis?.axisLabel?.fontSize || 9,
+          rotate: option.xAxis?.axisLabel?.rotate ? -Math.PI / 5 : 0,
+          maxWidth: Math.max(42, step * every - 4),
+        });
+      }
+      if (barSeries.length) {
+        const groupWidth = Math.min(step * 0.72, barSeries.length * 40);
+        const barWidth = Math.max(2, groupWidth / barSeries.length - 2);
+        barSeries.forEach((entry, seriesIndex) => {
+          const value = chartValue(entry.data[index]);
+          if (value === null) return;
+          const y = yFor(value);
+          const x0 = x - groupWidth / 2 + seriesIndex * (groupWidth / barSeries.length) + 1;
+          this.context.fillStyle = chartColor(entry, entry.data[index], seriesIndex);
+          this.context.fillRect(x0, Math.min(y, zeroY), barWidth, Math.max(1, Math.abs(zeroY - y)));
+        });
+      }
+      this.hitColumns.push({ x0: left + step * index, x1: left + step * (index + 1), index, label, series });
+    });
+    lineSeries.forEach((entry, seriesIndex) => {
+      const color = chartColor(entry, null, seriesIndex);
+      this.context.strokeStyle = color;
+      this.context.lineWidth = entry.lineStyle?.width || 2;
+      this.context.setLineDash(entry.lineStyle?.type === "dashed" ? [6, 5] : []);
+      this.context.beginPath();
+      let started = false;
+      entry.data.forEach((item, index) => {
+        const value = chartValue(item);
+        if (value === null) return;
+        const x = left + step * (index + 0.5);
+        const y = yFor(value);
+        if (!started) { this.context.moveTo(x, y); started = true; }
+        else this.context.lineTo(x, y);
+      });
+      this.context.stroke();
+      this.context.setLineDash([]);
+      if (entry.showSymbol) {
+        entry.data.forEach((item, index) => {
+          const value = chartValue(item);
+          if (value === null) return;
+          this.context.beginPath();
+          this.context.arc(left + step * (index + 0.5), yFor(value), (entry.symbolSize || 5) / 2, 0, Math.PI * 2);
+          this.context.fillStyle = color;
+          this.context.fill();
+        });
+      }
+    });
+    this.drawLegend(width, height);
+  }
+
+  showTooltip(event) {
+    if (!this.hitColumns.length) return;
+    const rect = this.canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const hit = this.hitColumns.find((column) => x >= column.x0 && x <= column.x1);
+    if (!hit) { this.tooltip.classList.add("hidden"); return; }
+    const lines = hit.series.map((entry) => {
+      const value = chartValue(entry.data[hit.index]);
+      return value === null ? "" : `${entry.name || "数值"}: ${value.toFixed(2)}`;
+    }).filter(Boolean);
+    this.tooltip.textContent = [hit.label, ...lines].join("\n");
+    this.tooltip.style.left = `${Math.min(rect.width - 170, Math.max(8, x + 12))}px`;
+    this.tooltip.style.top = `${Math.max(8, event.clientY - rect.top - 20)}px`;
+    this.tooltip.classList.remove("hidden");
+  }
+}
+
+function setEChart(key, selector, option) {
   const el = typeof selector === "string" ? $(selector) : selector;
   if (!el) return null;
   let chart = state.charts[key];
-  if (!chart || chart.isDisposed?.() || chart.getDom() !== el) {
-    if (chart && !chart.isDisposed?.()) chart.dispose();
-    chart = echarts.init(el, null, { renderer: "canvas" });
+  if (!chart || chart.isDisposed() || chart.getDom() !== el) {
+    if (chart && !chart.isDisposed()) chart.dispose();
+    chart = new NativeCanvasChart(el);
     state.charts[key] = chart;
   }
   if (!state.chartOptions) state.chartOptions = {};
   state.chartOptions[key] = option;
-  chart.setOption(
-    {
-      backgroundColor: "transparent",
-      textStyle: {
-        color: CHART.muted,
-        fontFamily: "'Noto Sans SC', 'DM Sans', sans-serif",
-      },
-      ...option,
-    },
-    { notMerge: true }
-  );
-  requestAnimationFrame(() => {
-    if (!chart.isDisposed?.()) chart.resize();
-  });
+  chart.setOption(option);
   return chart;
 }
 
@@ -151,7 +403,6 @@ function currentTheme() {
 function setTheme(theme) {
   const next = THEMES.includes(theme) ? theme : "dark";
   document.documentElement.setAttribute("data-theme", next);
-  localStorage.setItem("alphasplit-theme", next);
   applyThemeToCharts();
   updateThemeToggleLabel();
 }
@@ -171,10 +422,7 @@ function updateThemeToggleLabel() {
 }
 
 function initTheme() {
-  const saved = localStorage.getItem("alphasplit-theme");
-  if (saved && THEMES.includes(saved)) {
-    document.documentElement.setAttribute("data-theme", saved);
-  }
+  document.documentElement.setAttribute("data-theme", "dark");
   refreshChartTheme();
   updateThemeToggleLabel();
 }
@@ -396,7 +644,7 @@ function openMetricExplanation(explanation, trigger = null) {
     ${explanationSection("计算公式", explanation.formula, "metric-explain-formula")}
     ${explanationSection("本次代入", explanation.calculation)}
     ${traceRows.length ? `<section class="metric-explain-section"><h3>追溯信息</h3><dl class="metric-explain-trace">${traceRows.map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`).join("")}</dl></section>` : ""}
-    ${explanationSection("使用边界", explanation.limitation || "历史回测与归因结果仅用于决策支持，不构成收益承诺；最终方案须经人工确认。", "metric-explain-warning")}
+    ${explanationSection("使用边界", explanation.limitation || "历史回测与归因结果仅用于决策支持，不构成收益承诺；最终方案须经评审委员会（或机构治理责任人）确认。", "metric-explain-warning")}
   `;
   overlay.classList.remove("hidden");
   overlay.setAttribute("aria-hidden", "false");
@@ -539,7 +787,7 @@ function buildDualPoolExplanation(row, metric, data = state.backtestResult) {
     formula: "合成资源量 = 可分配资源池 × 合成份额",
     calculation: `${money(state.dualPoolAmount)} × ${percentText(row.finalW, 1)} = ${money(row.amount)}`,
     sourcePath: "frontend.computeDualPoolRows[].amount",
-    limitation: "资源池可代表预算、研究资源、项目机会、数据/算力额度或激励权益；人工确认前不生效。",
+    limitation: "资源池可代表预算、研究资源、项目机会、数据/算力额度或激励权益；评审委员会确认前不生效。",
   };
   if (metric === "finalW") return {
     title: `${row.role}6:4合成份额`, current: percentText(row.finalW, 1), ...trace,
@@ -547,7 +795,7 @@ function buildDualPoolExplanation(row, metric, data = state.backtestResult) {
     formula: "合成份额 = 60% × 制度轨现行份额 + 40% × 证据轨建议份额",
     calculation: `60% × ${percentText(row.oldW, 1)} + 40% × ${percentText(row.newW, 1)} = ${percentText(row.finalW, 1)}`,
     sourcePath: "frontend.computeDualPoolRows[].finalW",
-    limitation: "合成结果是协商与治理的输入，不会自动应用，必须经过人工确认。",
+    limitation: "合成结果是评审决策的量化输入，不会自动应用，必须由评审委员会或机构治理责任人确认。",
   };
   return metric === "oldW" ? {
     title: `${row.role}制度轨现行份额`, current: percentText(row.oldW, 1), ...trace,
@@ -728,11 +976,11 @@ const GUIDED_COPY = {
   },
   apply: {
     title: "回测已完成，查看贡献如何进入应用建议",
-    body: "先阅读客户方案、默认方案和沪深300的对照，再进入6:4合成与人工确认。",
+    body: "先阅读客户方案、默认方案和沪深300的对照，再进入6:4建议与评审委员会决策。",
     button: "进入应用建议",
   },
   complete: {
-    title: "本次方案已经人工确认",
+    title: "本次方案已由评审委员会确认",
     body: "你可以查看最终份额和资源量，或返回第一步重新描述客户需求。",
     button: "查看确认结果",
   },
@@ -969,7 +1217,7 @@ function renderDualPoolPanel() {
   }).join("");
 
   const confirmNote = state.dualPoolConfirmed
-    ? `<p class="note dual-pool-ok">已采用当前制度轨输入作为五角色协商基准；最终方案仍需在协商后人工确认。</p>`
+    ? `<p class="note dual-pool-ok">已采用当前制度轨输入生成评审建议；最终方案仍需评审委员会（或机构治理责任人）独立确认。</p>`
     : "";
 
   box.innerHTML = `
@@ -977,7 +1225,7 @@ function renderDualPoolPanel() {
     <p class="dual-pool-lead">
       <strong>制度轨 60%</strong> 沿用机构现行分配 ·
       <strong>证据轨 40%</strong> 按 HS300 夏普利证据建议 ·
-      合成后<strong>人工确认</strong>方可应用。
+      合成后由<strong>评审委员会（或机构治理责任人）确认</strong>方可应用。
     </p>
     <div class="allocation-scope-guide" aria-label="分配比例口径说明">
       <div class="allocation-scope-item legacy">
@@ -993,7 +1241,7 @@ function renderDualPoolPanel() {
       <div class="allocation-scope-item final">
         <span>最终合成比例</span>
         <strong>占总可分配资源池</strong>
-        <p>60%原有方案与40%纯新方案合成，协商和人工确认均使用此口径。</p>
+        <p>60%原有方案与40%纯新方案合成，作为评审委员会决策的量化建议。</p>
       </div>
     </div>
     <div class="dual-pool-controls">
@@ -1032,7 +1280,7 @@ function renderDualPoolPanel() {
       <button type="button" class="btn btn-ghost" id="btnBaselineReset">恢复默认均等</button>
     </details>
     <div class="dual-pool-actions">
-      <button type="button" class="btn btn-ghost" id="btnDualPoolConfirm">采用当前输入作为协商基准</button>
+      <button type="button" class="btn btn-ghost" id="btnDualPoolConfirm">采用当前制度轨输入，进入评审决策</button>
       <button type="button" class="btn btn-ghost" id="btnDualPoolRecalc">重新计算</button>
     </div>
     ${confirmNote}
@@ -1043,10 +1291,10 @@ function renderDualPoolPanel() {
     <div class="guided-next-action">
       <div>
         <span>下一步</span>
-        <strong>让五个投资角色基于这套证据展开协商</strong>
-        <p>系统将读取当前6:4合成份额，生成各角色主张和协商建议；协商完成后再由你最终确认。</p>
+        <strong>提交贡献证据，由评审委员会决策</strong>
+        <p>系统将生成6:4合成建议，并汇总五类角色的贡献陈述作为参考；角色意见不改变建议份额，最终由评审委员会独立调整和确认。</p>
       </div>
-      <button type="button" class="btn primary" id="btnStartGuidedNegotiate">开始五角色协商</button>
+      <button type="button" class="btn primary" id="btnStartGuidedNegotiate">进入评审委员会决策</button>
     </div>
   `;
   box.classList.remove("hidden");
@@ -1098,7 +1346,7 @@ function renderUtterance(u) {
   div.innerHTML = `
     <div class="meta">
       <span>${u.speaker} · ${u.role || ""}</span>
-      ${u.claim != null ? `<span class="claim">主张 ${pct(u.claim)}</span>` : ""}
+      ${u.claim != null ? `<span class="claim">参考意见 ${pct(u.claim)}</span>` : ""}
     </div>
     <div class="text">${u.text}</div>
   `;
@@ -1111,17 +1359,17 @@ function buildSettlementExplanation(name, row, data) {
   const negotiated = finiteNumber(row.negotiated_share, anchor);
   const amount = finiteNumber(row.amount);
   return {
-    title: `${name}协商建议`,
+    title: `${name}评审建议`,
     current: `${percentText(proposed, 1)} / ${money(amount)}`,
-    definition: "五角色协商意向与6:4合成锚点混合后，夹入允许带宽并归一化形成的系统建议。",
-    formula: "初始建议 = 40% × 协商意向 + 60% × 最终合成锚点；夹入带宽后归一化；资源量 = 建议份额 × 可分配资源（此处40%是协商调节系数，不是证据轨占比）",
-    calculation: `协商意向 ${percentText(negotiated, 1)}，合成锚点 ${percentText(anchor, 1)}，允许区间 ${percentText(row.band_low, 1)}–${percentText(row.band_high, 1)}；输出 ${percentText(proposed, 1)} × ${money(data.distributable)} = ${money(amount)}。`,
-    scope: data.backtest_summary || state.backtestResult?.query_summary || "当前协商",
+    definition: "系统建议由制度轨60%与夏普利证据轨40%合成；角色陈述只供评审参考，不参与建议份额计算。",
+    formula: "系统建议 = 60% × 制度轨现行份额 + 40% × 证据轨建议份额；资源量 = 系统建议份额 × 可分配资源",
+    calculation: `6:4合成建议 ${percentText(anchor, 1)}；角色参考意见 ${percentText(negotiated, 1)} 不参与计算。评审调整区间 ${percentText(row.band_low, 1)}–${percentText(row.band_high, 1)}；当前建议 ${percentText(proposed, 1)} × ${money(data.distributable)} = ${money(amount)}。`,
+    scope: data.backtest_summary || state.backtestResult?.query_summary || "当前评审",
     benchmark: "沪深300夏普利证据",
     sourcePath: `negotiation.settlement.${name}`,
     requestId: state.backtestResult?.request_id || "—",
     configId: state.backtestResult?.results?.factor_config?.config_id || state.factorConfig?.config_id || "—",
-    limitation: "协商值是系统建议，不是自动执行结果；人工可在带宽内调整，越界必须明确承担合规定责。",
+    limitation: "系统建议不是自动裁决；最终比例由评审委员会（或机构治理责任人）独立调整并确认，越界须明确承担合规定责。",
   };
 }
 
@@ -1156,12 +1404,12 @@ function renderSettlement(data) {
     : "";
 
   settle.innerHTML = `
-    <h3>${isFive ? "五角色" : ""}系统建议案 · 最终合成比例（占总资源池）</h3>
+    <h3>评审建议 · 最终合成比例（占总资源池）</h3>
     ${dualNote}
     <p class="allocation-final-note">下列“最终建议”已包含60%原有方案；“纯新方案”仅表示40%证据轨内部比例。可分配资源 ${Number(data.distributable || 0).toLocaleString("zh-CN")} 单位 · 带宽 ±${(band * 100).toFixed(0)}%</p>
     <div class="settle-grid">${items}</div>
     <p class="note" style="margin-top:0.75rem">
-      状态：${data.status || "pending_human_confirm"} · 模式 ${data.mode || "-"} · 需人工确认后生效
+      状态：${data.status || "pending_human_confirm"} · 模式 ${data.mode || "-"} · 需评审委员会确认后生效
     </p>
   `;
   settle.classList.remove("hidden");
@@ -1189,16 +1437,16 @@ function renderHumanConfirm(data) {
     .join("");
 
   box.innerHTML = `
-    <h3>最终合成方案人工确认（占总资源池）</h3>
+    <h3>评审委员会分配决策（占总资源池）</h3>
     <p class="allocation-final-note"><strong>请注意：</strong>下列输入比例已经包含60%原有方案和40%纯新方案，五角色合计应为100%；并非只分配40%证据轨。</p>
-    <p class="note">默认夹入带宽；勾选「允许越界」表示合规定责下的人工覆盖。</p>
+    <p class="note">角色陈述仅供参考。评审委员会可在建议带宽内独立调整；勾选「允许越界」表示在合规定责下作出人工覆盖。</p>
     <div class="share-form">${rows}</div>
     <label class="override">
       <input type="checkbox" id="allowOutside" /> 允许越出带宽（需明示合规定责）
     </label>
     <div class="confirm-actions">
-      <button id="btnAcceptProposed" class="btn">采纳建议案</button>
-      <button id="btnConfirm" class="btn primary">确认方案</button>
+      <button id="btnAcceptProposed" class="btn">采用系统建议</button>
+      <button id="btnConfirm" class="btn primary">确认评审决定</button>
     </div>
     <div id="confirmResult" class="confirm-result"></div>
   `;
@@ -1286,12 +1534,12 @@ async function runNegotiate(options = {}) {
   const chat = $("#chatStream");
   $("#settlement").classList.add("hidden");
   $("#humanConfirm").classList.add("hidden");
-  chat.innerHTML = `<div class="bubble arbiter negotiate-progress-bubble"><div class="text">正在读取回测证据并生成五角色协商轮次…</div></div>`;
+  chat.innerHTML = `<div class="bubble arbiter negotiate-progress-bubble"><div class="text">正在读取回测证据并生成角色贡献陈述与评审建议…</div></div>`;
   chat.setAttribute("aria-busy", "true");
   focusNegotiateProgress(chat);
 
   if (!state.backtestResult?.results?.role_breakdown?.length) {
-    chat.innerHTML = `<div class="bubble arbiter"><div class="text">请先在「HS300 岗位贡献」完成回测，再开始五角色协商。</div></div>`;
+    chat.innerHTML = `<div class="bubble arbiter"><div class="text">请先在「HS300 岗位贡献」完成回测，再进入评审委员会决策。</div></div>`;
     chat.removeAttribute("aria-busy");
     focusNegotiateProgress(chat);
     setBusy(btn, false);
@@ -1301,8 +1549,8 @@ async function runNegotiate(options = {}) {
 
   if (roadshow) {
     showRoadshowLine(
-      "第2步 · 五角色协商",
-      "五岗位将基于夏普利证据各自陈述主张；仲裁人汇总后形成 6:4 双轨建议案。",
+      "第2步 · 贡献评审",
+      "五类角色基于夏普利证据陈述意见，仅供参考；系统提供 6:4 建议，最终由评审委员会决策。",
       3
     );
     await sleep(ROADSHOW_PACE.negotiateIntro);
@@ -1332,10 +1580,10 @@ async function runNegotiate(options = {}) {
       label.textContent = `Round ${round.round} · ${round.phase} · consensus ${((round.consensus || 0) * 100).toFixed(0)}%`;
       chat.appendChild(label);
       if (roadshow) {
-        const phaseLabel = round.phase === "opening" ? "开场陈述" : "反驳收敛";
+        const phaseLabel = round.phase === "opening" ? "首次陈述" : "补充陈述";
         showRoadshowLine(
           `第2步 · ${phaseLabel}`,
-          `五角色 ${phaseLabel}：各自引用证据轨建议权重与 6:4 合成份额表达诉求…`,
+          `五类角色 ${phaseLabel}：各自引用贡献证据表达意见，内容仅供评审参考…`,
           3
         );
         await sleep(600);
@@ -1358,8 +1606,8 @@ async function runNegotiate(options = {}) {
     chat.scrollTop = chat.scrollHeight;
     if (roadshow) {
       showRoadshowLine(
-        "第2步 · 仲裁总结",
-        data.arbiter_statement || "仲裁人：证据链已齐备，请治理责任人确认后再应用分配方案。",
+        "第2步 · 评审决策说明",
+        data.arbiter_statement || "评审委员会：证据链已齐备，请独立判断、调整并确认分配方案。",
         3
       );
       await sleep(1200);
@@ -1369,7 +1617,7 @@ async function runNegotiate(options = {}) {
     renderHumanConfirm(data);
     focusNegotiateProgress($("#humanConfirm"), "center");
   } catch (e) {
-    chat.innerHTML = `<div class="bubble arbiter"><div class="text">协商失败：${e.message}</div></div>`;
+    chat.innerHTML = `<div class="bubble arbiter"><div class="text">评审材料生成失败：${e.message}</div></div>`;
     focusNegotiateProgress(chat);
   } finally {
     chat.removeAttribute("aria-busy");
@@ -1921,7 +2169,7 @@ const STAGE_NARRATIVE = {
   complete: {
     tag: "已完成",
     title: "贡献计量完成",
-    body: "已得到各岗位贡献排序与权重，可进入「协商与确认」讨论如何应用这些证据。",
+    body: "已得到各岗位贡献排序与权重，可进入「贡献评审与分配决策」讨论如何应用这些证据。",
     meaning: "技术链路闭环：证据 → 决策支持（人工终裁）。",
     output: "见下方「结论摘要」；明细见技术图表。",
   },
@@ -2000,14 +2248,14 @@ function renderBacktestConclusion(data, { showTechDivider = true } = {}) {
     <p class="conclusion-lead">${lead}</p>
     <p class="note dual-track-hint" style="margin:0 0 0.75rem">
       <strong>6:4 双轨：</strong>本回测产出的是<strong>证据轨 40%</strong> 夏普利建议权重；
-      制度轨 60% 沿用机构现行方案。完整合成表见下一步「人工确认」。
+      制度轨 60% 沿用机构现行方案。完整合成表见下一步「评审决策」。
     </p>
     ${capNote}
     ${rec ? `<p class="note" style="margin:0 0 0.75rem">${rec}</p>` : ""}
-    <p class="note" style="margin:0 0 0.5rem"><strong>用途：</strong>以下为贡献计量证据，可支持预算、研究资源、项目机会、数据/算力额度和激励权益等<strong>广义价值分配</strong>；方案须经人工确认。</p>
+    <p class="note" style="margin:0 0 0.5rem"><strong>用途：</strong>以下为贡献计量证据，可支持预算、研究资源、项目机会、数据/算力额度和激励权益等<strong>广义价值分配</strong>；方案须经评审委员会（或机构治理责任人）确认。</p>
     <ul class="rank-list">${rankHtml}</ul>
     <div class="conclusion-actions">
-      <button type="button" class="btn primary" id="btnGotoNegotiate">下一步：人工确认 →</button>
+      <button type="button" class="btn primary" id="btnGotoNegotiate">下一步：评审委员会决策 →</button>
     </div>
   `;
   box.classList.remove("hidden");
@@ -2681,7 +2929,7 @@ const ROADSHOW_STAGE_LINES = {
   pipeline: "按投研链整合五角色决策，模拟协作后的组合净值…",
   shapley: "遍历角色联盟做反事实对照——估计各岗位边际贡献 φ…",
   save: "汇总选股、收益与证据轨建议权重，生成可审计报告…",
-  complete: "贡献计量完成：证据已就绪，可进入人工确认环节。",
+  complete: "贡献计量完成：证据已就绪，可进入评审委员会决策环节。",
 };
 
 function setRoadshowMode(on) {
@@ -2721,7 +2969,7 @@ function buildConclusionNarration(data) {
   if (bottom && bottom.role !== top?.role && (bottom.shapley_raw || 0) < 0) {
     line += ` ${bottom.role.replace("分析师", "")}岗呈负向拖累，需在考核中重点关注。`;
   }
-  line += " 以上为计量证据，下一步进入协商与 6:4 双轨人工确认。";
+  line += " 以上为计量证据，下一步进入贡献评审与评审委员会分配决策。";
   return line;
 }
 
@@ -2830,9 +3078,129 @@ function renderFactorAgentMode() {
     badge.classList.add("online");
     badge.classList.remove("fallback");
   } else {
-    badge.textContent = "规则兜底模式";
+    const offlineCache = agent.offline_cache || {};
+    badge.textContent = offlineCache.available
+      ? `离线Agent缓存 · ${offlineCache.response_count || 0}组预置响应`
+      : "规则兜底模式";
     badge.classList.remove("online");
     badge.classList.add("fallback");
+  }
+  renderAgentCredentialStatus();
+}
+
+function setAgentCredentialChoice(showInput) {
+  const form = $("#agentCredentialForm");
+  const offlineButton = $("#btnKeepOffline");
+  const onlineButton = $("#btnShowAgentKey");
+  form?.classList.toggle("hidden", !showInput);
+  offlineButton?.classList.toggle("active", !showInput);
+  onlineButton?.classList.toggle("active", showInput);
+  offlineButton?.setAttribute("aria-pressed", String(!showInput));
+  onlineButton?.setAttribute("aria-pressed", String(showInput));
+  onlineButton?.setAttribute("aria-expanded", String(showInput));
+  if (showInput) window.requestAnimationFrame(() => $("#agentApiKey")?.focus());
+}
+
+function renderAgentCredentialStatus(message = "", type = "") {
+  const box = $("#agentCredentialStatus");
+  const summary = $("#agentModeSummary");
+  const clearButton = $("#btnClearAgentKey");
+  if (!box) return;
+  const agent = state.factorConfigMeta?.agent || {};
+  const runtimeConfigured = agent.credential_source === "runtime";
+  if (message) {
+    box.textContent = message;
+  } else if (runtimeConfigured) {
+    box.textContent = "在线 Agent 已启用。当前密钥仅保存在本次服务进程内存中。";
+  } else if (agent.available) {
+    box.textContent = "在线 Agent 已通过服务端环境变量启用；页面不会显示或读取该密钥。";
+  } else if (agent.offline_cache?.available) {
+    box.textContent = "当前使用内置离线 Agent 缓存；不输入密钥也可完整体验。";
+  } else {
+    box.textContent = "当前使用规则模式；可输入 DeepSeek API Key 启用在线 Agent。";
+  }
+  if (summary) {
+    summary.textContent = runtimeConfigured
+      ? "在线 Agent 已启用；密钥仅保存在本次服务进程内存中。"
+      : agent.available
+        ? "在线 Agent 已通过服务端环境变量启用，页面不会读取或显示密钥。"
+        : agent.offline_cache?.available
+          ? "默认使用内置离线 Agent 缓存，无需 API Key 也能完整体验。"
+          : "当前使用规则模式；也可以输入 DeepSeek API Key 启用在线 Agent。";
+  }
+  box.className = `agent-credential-status${type ? ` ${type}` : ""}`;
+  if (clearButton) clearButton.disabled = !runtimeConfigured;
+}
+
+async function keepOfflineAgentMode() {
+  const agent = state.factorConfigMeta?.agent || {};
+  if (agent.credential_source === "runtime") {
+    await clearAgentApiKey();
+  } else if (agent.available) {
+    setAgentCredentialChoice(false);
+    renderAgentCredentialStatus("当前在线 Agent 由服务端环境变量启用；移除该环境变量并重启服务后可恢复离线模式。");
+  } else {
+    setAgentCredentialChoice(false);
+    renderAgentCredentialStatus("已保持离线完整演示模式；需要时可随时选择输入 API Key。", "ok");
+  }
+}
+
+async function saveAgentApiKey() {
+  const input = $("#agentApiKey");
+  const button = $("#btnSaveAgentKey");
+  const apiKey = input?.value?.trim() || "";
+  if (!apiKey) {
+    renderAgentCredentialStatus("请输入 DeepSeek API Key，或保持当前离线缓存模式。", "error");
+    return;
+  }
+  setBusy(button, true);
+  try {
+    const result = await api("/api/agent/credentials", {
+      method: "PUT",
+      body: JSON.stringify({ api_key: apiKey }),
+    });
+    state.factorConfigMeta = {
+      ...(state.factorConfigMeta || {}),
+      agent: {
+        ...(state.factorConfigMeta?.agent || {}),
+        ...(result.agent || {}),
+      },
+    };
+    renderFactorAgentMode();
+    renderAgentCredentialStatus("在线 Agent 已启用；密钥将在服务重启时自动清除。", "ok");
+    setAgentCredentialChoice(true);
+  } catch (error) {
+    renderAgentCredentialStatus(`启用失败：${error.message}`, "error");
+  } finally {
+    if (input) input.value = "";
+    setBusy(button, false);
+  }
+}
+
+async function clearAgentApiKey() {
+  const input = $("#agentApiKey");
+  const button = $("#btnClearAgentKey");
+  setBusy(button, true);
+  try {
+    const result = await api("/api/agent/credentials", { method: "DELETE" });
+    state.factorConfigMeta = {
+      ...(state.factorConfigMeta || {}),
+      agent: {
+        ...(state.factorConfigMeta?.agent || {}),
+        ...(result.agent || {}),
+      },
+    };
+    renderFactorAgentMode();
+    const message = result.agent?.available
+      ? "页面输入的密钥已清除；当前仍使用服务端环境变量配置。"
+      : "页面输入的密钥已清除，已恢复内置离线 Agent 缓存。";
+    renderAgentCredentialStatus(message, "ok");
+    setAgentCredentialChoice(!!result.agent?.available);
+  } catch (error) {
+    renderAgentCredentialStatus(`清除失败：${error.message}`, "error");
+  } finally {
+    if (input) input.value = "";
+    setBusy(button, false);
   }
 }
 
@@ -2971,7 +3339,7 @@ function renderFactorProposal(proposal) {
   box.innerHTML = `
     <div class="factor-proposal-head">
       <h4>配置调整建议</h4>
-      <span class="agent-badge ${proposal.source === "deepseek" ? "online" : "fallback"}">${proposal.source === "deepseek" ? `DeepSeek · ${escapeHtml(proposal.model || "deepseek-chat")}` : proposal.source === "rule_fallback" ? "规则回退" : "规则模式"}</span>
+      <span class="agent-badge ${proposal.source === "deepseek" ? "online" : "fallback"}">${proposal.source === "deepseek" ? `DeepSeek · ${escapeHtml(proposal.model || "deepseek-chat")}` : proposal.source === "agent_cache" ? "预置Agent响应 · 离线" : proposal.source === "rule_fallback" ? "规则回退" : "规则模式"}</span>
     </div>
     <p>${escapeHtml(proposal.summary || "")}</p>
     ${proposal.clarification_needed && proposal.clarification_question ? `<div class="factor-clarification"><strong>需要补充：</strong>${escapeHtml(proposal.clarification_question)}</div>` : ""}
@@ -3020,7 +3388,8 @@ async function proposeFactorConfig() {
   renderFactorConversation();
   setBusy(btn, true);
   try {
-    const useLlm = state.factorConfigMeta?.agent?.available === true;
+    const useLlm = state.factorConfigMeta?.agent?.available === true
+      || state.factorConfigMeta?.agent?.offline_cache?.available === true;
     const proposal = await api("/api/agent/factor-config", {
       method: "POST",
       body: JSON.stringify({
@@ -3045,6 +3414,8 @@ async function proposeFactorConfig() {
       setGuidedStage("preferences", { body: "Agent还需要更明确的信息。请回答对话中的问题，再次生成方案建议。" });
     } else if (proposal.source === "deepseek") {
       setFactorConfigStatus("DeepSeek已生成结构化建议，等待人工确认。", "pending");
+    } else if (proposal.source === "agent_cache") {
+      setFactorConfigStatus("已加载并重新校验预置Agent响应，等待人工确认。", "pending");
     } else if (proposal.source === "rule_fallback") {
       setFactorConfigStatus("DeepSeek不可用，已明确切换到规则建议；等待人工确认。", "pending");
     } else {
@@ -4084,7 +4455,7 @@ async function runAll() {
   try {
     showRoadshowLine(
       "路演开始",
-      "本次演示回答三个问题：各岗位贡献多少？夏普利依据是什么？6:4 双轨如何人工确认？",
+      "本次演示回答三个问题：各岗位贡献多少？夏普利依据是什么？评审委员会如何基于6:4建议作出决策？",
       1
     );
     highlightDemoFlow("backtest");
@@ -4103,8 +4474,8 @@ async function runAll() {
     await sleep(ROADSHOW_PACE.conclusion);
 
     showRoadshowLine(
-      "第2步 · 五角色协商",
-      "证据已产出。接下来五岗位基于证据轨建议权重陈述主张，形成 6:4 双轨建议案…",
+      "第2步 · 贡献评审",
+      "证据已产出。接下来五类角色陈述贡献意见供参考，系统提供 6:4 建议，由评审委员会独立决策…",
       3
     );
     highlightDemoFlow("negotiate");
@@ -4114,8 +4485,8 @@ async function runAll() {
 
     renderDualPoolPanel();
     showRoadshowLine(
-      "第3步 · 6:4 双轨确认",
-      "合成公式：最终 = 60%×机构现行方案 + 40%×夏普利证据池。请治理责任人确认后再应用。",
+      "第3步 · 评审委员会决策",
+      "合成公式：建议 = 60%×机构现行方案 + 40%×夏普利证据池。角色意见不参与计算，由评审委员会确认后再应用。",
       3
     );
     $("#dualPoolPanel")?.classList.add("roadshow-highlight");
@@ -4123,7 +4494,7 @@ async function runAll() {
     await sleep(ROADSHOW_PACE.dualPool);
 
     const elapsed = Math.round((Date.now() - t0) / 1000);
-    showRoadshowLine("路演完成", `全流程约 ${elapsed} 秒。证据链：回测 → 协商 → 双轨确认。`, 3);
+    showRoadshowLine("路演完成", `全流程约 ${elapsed} 秒。证据链：回测 → 贡献评审 → 分配决策。`, 3);
   } finally {
     $("#dualPoolPanel")?.classList.remove("roadshow-highlight");
     setRoadshowMode(false);
@@ -4151,6 +4522,16 @@ $("#btnFactorPropose")?.addEventListener("click", proposeFactorConfig);
 $("#btnFactorApply")?.addEventListener("click", applyFactorConfigProposal);
 $("#btnFactorReset")?.addEventListener("click", resetFactorConfig);
 $("#btnFactorClearChat")?.addEventListener("click", clearFactorConversation);
+$("#btnSaveAgentKey")?.addEventListener("click", saveAgentApiKey);
+$("#btnClearAgentKey")?.addEventListener("click", clearAgentApiKey);
+$("#btnKeepOffline")?.addEventListener("click", keepOfflineAgentMode);
+$("#btnShowAgentKey")?.addEventListener("click", () => setAgentCredentialChoice(true));
+$("#agentApiKey")?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    saveAgentApiKey();
+  }
+});
 $("#factorAgentText")?.addEventListener("keydown", (event) => {
   if (event.ctrlKey && event.key === "Enter") {
     event.preventDefault();

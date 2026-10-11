@@ -5,7 +5,7 @@ from datetime import date
 import math
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 
 
 class CalculateRequest(BaseModel):
@@ -25,7 +25,7 @@ class NegotiateRequest(BaseModel):
     mode: str = Field(default="mock", pattern="^(mock|llm)$")
     backtest: Optional[dict[str, Any]] = Field(
         default=None,
-        description="HS300 回测结果；传入后五角色协商与夏普利证据对齐",
+        description="HS300 回测结果；传入后角色贡献陈述与夏普利证据对齐",
     )
     bonus_pool: float = Field(default=10_000_000, ge=0)
     baseline_weights: Optional[dict[str, float]] = Field(
@@ -223,6 +223,13 @@ class AgentFactorConfigRequest(BaseModel):
         if any(item not in allowed_roles for item in focus_roles):
             raise ValueError("focus_roles 包含不支持的角色")
         return value
+
+
+class AgentCredentialRequest(BaseModel):
+    """页面临时配置的模型凭证；序列化与错误展示均不返回明文。"""
+
+    model_config = ConfigDict(extra="forbid")
+    api_key: SecretStr
 
 
 class AgentInterpretRequest(BaseModel):

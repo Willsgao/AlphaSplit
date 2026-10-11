@@ -1,0 +1,1036 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AlphaSplit 决赛答辩｜高玉伟负责页面</title>
+  <style>
+    :root {
+      --ink: #f4f9ff;
+      --muted: #adc2d8;
+      --canvas: #061529;
+      --surface: #0a2342;
+      --surface-strong: #0d315a;
+      --line: #2d5c88;
+      --blue: #4ca8ff;
+      --blue-soft: #b9ddff;
+      --cyan: #28d7e5;
+      --cyan-soft: #a5f4f7;
+      --amber: #ffca55;
+      --coral: #ff8073;
+      --green: #58d1a2;
+      --slide-w: 1600px;
+      --slide-h: 900px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+      background: #020915;
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    body {
+      overflow: hidden;
+    }
+
+    button { font: inherit; }
+
+    .viewport {
+      position: fixed;
+      inset: 0 0 58px;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .deck {
+      position: relative;
+      width: var(--slide-w);
+      height: var(--slide-h);
+      transform-origin: center center;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: none;
+      width: var(--slide-w);
+      height: var(--slide-h);
+      overflow: hidden;
+      padding: 44px 62px 44px;
+      background-color: var(--canvas);
+      background-image:
+        linear-gradient(120deg, rgba(18, 70, 117, .24), transparent 42%),
+        linear-gradient(rgba(76,168,255,.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(76,168,255,.055) 1px, transparent 1px);
+      background-size: 100% 100%, 44px 44px, 44px 44px;
+    }
+
+    .slide.active { display: block; }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 7px;
+      background: linear-gradient(90deg, var(--blue), var(--cyan), var(--green));
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 10px;
+      color: var(--cyan-soft);
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .eyebrow .page {
+      display: inline-grid;
+      place-items: center;
+      width: 48px;
+      height: 34px;
+      border: 1px solid var(--cyan);
+      border-radius: 4px;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 1430px;
+      font-size: 45px;
+      line-height: 1.18;
+      font-weight: 800;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 22px;
+      line-height: 1.55;
+    }
+
+    .accent { color: var(--cyan-soft); }
+    .amber { color: var(--amber); }
+    .coral { color: var(--coral); }
+
+    .slide-footer {
+      position: absolute;
+      right: 62px;
+      bottom: 22px;
+      left: 62px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #6f8aa5;
+      font-size: 15px;
+    }
+
+    .slide-footer strong {
+      color: #9eb7ce;
+      font-weight: 600;
+    }
+
+    /* Shared diagram elements */
+    .logic-kicker {
+      display: grid;
+      grid-template-columns: 250px 1fr 250px;
+      align-items: center;
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .logic-kicker .terminal {
+      padding: 12px 18px;
+      border: 1px solid #2c6093;
+      background: rgba(10, 42, 76, .9);
+      color: var(--blue-soft);
+      font-size: 17px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .logic-kicker .principle {
+      color: var(--muted);
+      font-size: 17px;
+      text-align: center;
+    }
+
+    .logic-kicker .principle strong { color: var(--cyan-soft); }
+
+    .flow-chevron {
+      position: relative;
+      width: 34px;
+      min-width: 34px;
+      height: 4px;
+      background: var(--blue);
+    }
+
+    .flow-chevron::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: -2px;
+      width: 13px;
+      height: 13px;
+      border-top: 4px solid var(--blue);
+      border-right: 4px solid var(--blue);
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+    /* Slide 07 */
+    .evidence-flow {
+      display: flex;
+      align-items: stretch;
+      margin-top: 30px;
+    }
+
+    .evidence-stage {
+      position: relative;
+      flex: 1 1 0;
+      min-width: 0;
+      min-height: 278px;
+      padding: 24px 20px 20px;
+      border-top: 5px solid var(--stage-color);
+      border-bottom: 1px solid #2c5b87;
+      background: linear-gradient(180deg, rgba(15, 55, 96, .96), rgba(7, 31, 59, .96));
+    }
+
+    .evidence-stage + .flow-chevron { align-self: center; }
+
+    .evidence-stage .stage-no {
+      color: var(--stage-color);
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .evidence-stage h2 {
+      margin: 10px 0 14px;
+      font-size: 24px;
+      line-height: 1.25;
+    }
+
+    .evidence-stage .stage-core {
+      min-height: 76px;
+      color: var(--ink);
+      font-size: 18px;
+      line-height: 1.5;
+    }
+
+    .evidence-stage .stage-output {
+      position: absolute;
+      right: 16px;
+      bottom: 18px;
+      left: 16px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(140, 190, 232, .27);
+      color: var(--stage-color);
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .audit-track {
+      display: grid;
+      grid-template-columns: 210px 1fr 290px;
+      align-items: stretch;
+      margin-top: 26px;
+      border: 1px solid #2e638f;
+      background: rgba(7, 35, 65, .93);
+    }
+
+    .audit-track .track-label {
+      display: grid;
+      align-content: center;
+      padding: 18px 22px;
+      background: #0d4773;
+      color: var(--cyan-soft);
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .audit-track .track-items {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      align-items: center;
+      padding: 14px 18px;
+    }
+
+    .track-items span {
+      position: relative;
+      color: #d9e9f7;
+      font-size: 15px;
+      line-height: 1.3;
+      text-align: center;
+    }
+
+    .track-items span::before {
+      content: "";
+      display: block;
+      width: 9px;
+      height: 9px;
+      margin: 0 auto 8px;
+      border: 2px solid var(--cyan);
+      border-radius: 50%;
+      background: var(--canvas);
+    }
+
+    .track-items span:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 5px;
+      right: -50%;
+      width: 100%;
+      height: 1px;
+      background: #3476a9;
+    }
+
+    .audit-track .track-boundary {
+      display: grid;
+      align-content: center;
+      padding: 15px 22px;
+      border-left: 1px solid #2e638f;
+      color: var(--amber);
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    /* Slide 08 */
+    .architecture-board {
+      display: grid;
+      grid-template-columns: 240px 1fr 205px;
+      gap: 16px;
+      height: 548px;
+      margin-top: 24px;
+    }
+
+    .arch-side {
+      display: grid;
+      grid-template-rows: .92fr 1.28fr .92fr;
+      gap: 12px;
+    }
+
+    .side-block {
+      padding: 18px;
+      border-left: 4px solid var(--side-color);
+      background: rgba(8, 37, 69, .94);
+    }
+
+    .side-block h2 {
+      margin: 0 0 10px;
+      color: var(--side-color);
+      font-size: 19px;
+    }
+
+    .side-block p {
+      margin: 0;
+      color: #d2e3f3;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .side-block strong { color: var(--ink); }
+
+    .arch-center {
+      display: grid;
+      grid-template-rows: 68px 94px 104px 156px 102px;
+      gap: 8px;
+    }
+
+    .arch-cap {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      align-items: center;
+      border: 1px solid #3673a9;
+      background: rgba(12, 45, 81, .96);
+    }
+
+    .arch-cap strong {
+      padding-left: 20px;
+      color: var(--blue-soft);
+      font-size: 20px;
+    }
+
+    .cap-items,
+    .layer-items {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 1fr;
+      align-items: stretch;
+      gap: 8px;
+      padding: 8px;
+    }
+
+    .cap-items span,
+    .layer-items span {
+      display: grid;
+      place-items: center;
+      padding: 8px 10px;
+      border: 1px solid #3d79ae;
+      background: #103862;
+      color: #eaf5ff;
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.25;
+      text-align: center;
+    }
+
+    .arch-layer {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      overflow: hidden;
+      border: 1px solid #2f6798;
+      background: rgba(8, 32, 60, .96);
+    }
+
+    .arch-layer.core {
+      border: 2px solid var(--cyan);
+      background: rgba(6, 48, 78, .98);
+    }
+
+    .arch-layer .layer-name {
+      display: grid;
+      align-content: center;
+      padding: 14px 18px;
+      background: var(--layer-bg);
+    }
+
+    .layer-name em {
+      margin-bottom: 4px;
+      color: rgba(255,255,255,.72);
+      font-size: 13px;
+      font-style: normal;
+      font-weight: 700;
+    }
+
+    .layer-name strong {
+      color: white;
+      font-size: 21px;
+      line-height: 1.25;
+    }
+
+    .arch-layer.core .layer-items {
+      grid-template-columns: repeat(3, 1fr);
+      grid-auto-flow: row;
+    }
+
+    .arch-layer.core .layer-items span {
+      border-color: #228ba8;
+      background: #0a486d;
+      color: var(--cyan-soft);
+    }
+
+    .trust-spine {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      border: 1px solid #3372a4;
+      background: rgba(7, 35, 64, .96);
+    }
+
+    .trust-spine h2 {
+      margin: 0;
+      padding: 18px 16px;
+      background: #0d4773;
+      color: var(--cyan-soft);
+      font-size: 20px;
+      line-height: 1.3;
+      text-align: center;
+    }
+
+    .trust-list {
+      position: relative;
+      display: grid;
+      align-content: space-evenly;
+      padding: 12px 18px 12px 44px;
+    }
+
+    .trust-list::before {
+      content: "";
+      position: absolute;
+      top: 34px;
+      bottom: 34px;
+      left: 27px;
+      width: 2px;
+      background: var(--cyan);
+    }
+
+    .trust-list span {
+      position: relative;
+      color: #dbeaf8;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+
+    .trust-list span::before {
+      content: "";
+      position: absolute;
+      top: 5px;
+      left: -23px;
+      width: 10px;
+      height: 10px;
+      border: 2px solid var(--cyan);
+      border-radius: 50%;
+      background: var(--canvas);
+    }
+
+    .architecture-flow {
+      display: grid;
+      grid-template-columns: 128px 1fr;
+      align-items: center;
+      gap: 16px;
+      margin-top: 14px;
+      padding: 11px 18px;
+      border-top: 2px solid var(--blue);
+      background: rgba(8, 37, 69, .94);
+    }
+
+    .architecture-flow strong {
+      color: var(--blue-soft);
+      font-size: 18px;
+    }
+
+    .architecture-flow .business-chain {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .business-chain span {
+      color: var(--ink);
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .business-chain i {
+      width: 24px;
+      height: 2px;
+      background: var(--cyan);
+      position: relative;
+    }
+
+    .business-chain i::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: 0;
+      width: 8px;
+      height: 8px;
+      border-top: 2px solid var(--cyan);
+      border-right: 2px solid var(--cyan);
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+    /* Slide 13 */
+    .governance-flow {
+      display: grid;
+      grid-template-columns: 330px 55px 360px 55px 1fr;
+      align-items: stretch;
+      gap: 14px;
+      min-height: 410px;
+      margin-top: 30px;
+    }
+
+    .track-stack {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .governance-track {
+      position: relative;
+      padding: 22px 24px;
+      border-left: 6px solid var(--track-color);
+      background: rgba(11, 42, 75, .96);
+    }
+
+    .governance-track .ratio {
+      color: var(--track-color);
+      font-size: 44px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .governance-track h2 {
+      margin: 8px 0 8px;
+      font-size: 23px;
+    }
+
+    .governance-track p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.45;
+    }
+
+    .merge-arrow,
+    .decision-arrow {
+      display: grid;
+      place-items: center;
+    }
+
+    .merge-arrow span,
+    .decision-arrow span {
+      display: block;
+      width: 38px;
+      height: 4px;
+      background: var(--cyan);
+      position: relative;
+    }
+
+    .merge-arrow span::after,
+    .decision-arrow span::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: -1px;
+      width: 13px;
+      height: 13px;
+      border-top: 4px solid var(--cyan);
+      border-right: 4px solid var(--cyan);
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+    .formula-stage {
+      display: grid;
+      align-content: center;
+      padding: 30px 26px;
+      border: 2px solid var(--cyan);
+      background: rgba(7, 48, 78, .98);
+      text-align: center;
+    }
+
+    .formula-stage .formula-label {
+      color: var(--cyan-soft);
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .formula-stage .formula {
+      margin: 20px 0;
+      padding: 20px 14px;
+      border-top: 1px solid #2f7da2;
+      border-bottom: 1px solid #2f7da2;
+      color: var(--ink);
+      font-family: Consolas, "Microsoft YaHei", monospace;
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.55;
+    }
+
+    .formula-stage .rule {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .decision-chain {
+      display: grid;
+      grid-template-rows: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    .decision-node {
+      display: grid;
+      grid-template-columns: 52px 1fr;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 20px;
+      border: 1px solid #326a9b;
+      background: rgba(10, 39, 72, .96);
+    }
+
+    .decision-node .node-no {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      border: 2px solid var(--node-color);
+      border-radius: 50%;
+      color: var(--node-color);
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .decision-node strong {
+      display: block;
+      color: var(--ink);
+      font-size: 20px;
+      line-height: 1.3;
+    }
+
+    .decision-node small {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.35;
+    }
+
+    .governance-proof {
+      display: grid;
+      grid-template-columns: 390px 1fr 300px;
+      align-items: center;
+      gap: 20px;
+      margin-top: 22px;
+      padding: 12px 16px;
+      border-top: 2px solid #2e6d9d;
+      background: rgba(8, 34, 63, .95);
+    }
+
+    .proof-image {
+      display: grid;
+      grid-template-columns: 154px 1fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .proof-image img {
+      display: block;
+      width: 154px;
+      height: 82px;
+      object-fit: cover;
+      object-position: center 22%;
+      border: 1px solid #5e87a7;
+    }
+
+    .proof-image strong,
+    .governance-proof .advisory strong,
+    .governance-proof .applications strong {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--cyan-soft);
+      font-size: 17px;
+    }
+
+    .proof-image span,
+    .governance-proof .advisory span,
+    .governance-proof .applications span {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.4;
+    }
+
+    .governance-proof .advisory {
+      padding: 0 22px;
+      border-right: 1px solid #2c5e89;
+      border-left: 1px solid #2c5e89;
+    }
+
+    .governance-proof .advisory strong { color: var(--amber); }
+    .governance-proof .applications strong { color: var(--green); }
+
+    /* Viewer controls and notes */
+    .controls {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      height: 58px;
+      border-top: 1px solid #263139;
+      background: #0b1014;
+    }
+
+    .controls button {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      height: 36px;
+      border: 1px solid #40505a;
+      border-radius: 6px;
+      background: #151e24;
+      color: var(--ink);
+      cursor: pointer;
+      font-size: 23px;
+    }
+
+    .controls button:hover { border-color: var(--cyan); }
+
+    .controls .counter {
+      min-width: 76px;
+      color: var(--muted);
+      font-size: 15px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .notes-toggle {
+      position: fixed;
+      right: 18px;
+      bottom: 11px;
+      z-index: 12;
+      width: auto !important;
+      padding: 0 14px;
+      color: var(--cyan-soft) !important;
+      font-size: 14px !important;
+    }
+
+    .notes-panel {
+      position: fixed;
+      z-index: 20;
+      top: 24px;
+      right: 24px;
+      display: none;
+      width: min(520px, calc(100vw - 48px));
+      max-height: calc(100vh - 106px);
+      overflow: auto;
+      padding: 24px;
+      border: 1px solid #4c5c64;
+      border-radius: 6px;
+      background: rgba(14, 21, 26, .98);
+      box-shadow: 0 18px 50px rgba(0,0,0,.45);
+    }
+
+    .notes-panel.open { display: block; }
+    .notes-panel h2 { margin: 0 0 12px; color: var(--cyan-soft); font-size: 22px; }
+    .notes-panel p { margin: 0; color: #d3dbd8; font-size: 17px; line-height: 1.8; }
+    .notes-panel .timing { margin-top: 16px; color: var(--amber); font-size: 15px; font-weight: 700; }
+
+    @media print {
+      @page { size: 13.333in 7.5in; margin: 0; }
+      body { overflow: visible; background: white; }
+      .viewport { position: static; display: block; overflow: visible; }
+      .deck { width: auto; height: auto; transform: none !important; }
+      .slide, .slide.active {
+        position: relative;
+        display: block;
+        width: 1600px;
+        height: 900px;
+        page-break-after: always;
+        break-after: page;
+      }
+      .controls, .notes-panel { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="viewport" aria-label="AlphaSplit决赛答辩三页预览">
+    <div class="deck" id="deck">
+      <section class="slide active" data-page="07" data-time="40秒">
+        <div class="eyebrow"><span class="page">07</span><span>解题思路</span></div>
+        <h1>从角色决策到评审终裁，形成一条<span class="accent">可审计证据链</span></h1>
+        <p class="subtitle">统一数据、统一成本、统一基准，让每个角色的边际贡献都能复算</p>
+
+        <div class="logic-kicker" aria-label="证据链输入输出">
+          <div class="terminal">输入  岗位职责与客户偏好</div>
+          <div class="principle"><strong>控制变量原则</strong>  数据、基准、成本与调仓口径保持一致</div>
+          <div class="terminal">输出  可复算的贡献证据</div>
+        </div>
+
+        <div class="evidence-flow" aria-label="五步证据生成链">
+          <article class="evidence-stage" style="--stage-color: var(--blue)">
+            <div class="stage-no">01  定义对象</div>
+            <h2>角色建模</h2>
+            <div class="stage-core">行业、个股、策略<br>量化、风控</div>
+            <div class="stage-output">输出  五角色集合 N</div>
+          </article>
+          <i class="flow-chevron" aria-hidden="true"></i>
+          <article class="evidence-stage" style="--stage-color: var(--cyan)">
+            <div class="stage-no">02  固化输入</div>
+            <h2>因子代理</h2>
+            <div class="stage-core">五角色 × 8因子<br>人工确认后生效</div>
+            <div class="stage-output">输出  40项配置</div>
+          </article>
+          <i class="flow-chevron" aria-hidden="true"></i>
+          <article class="evidence-stage" style="--stage-color: var(--green)">
+            <div class="stage-no">03  构造对照</div>
+            <h2>反事实回测</h2>
+            <div class="stage-core">角色联盟有无对照<br>统一计算超额收益</div>
+            <div class="stage-output">输出  32个联盟 v(S)</div>
+          </article>
+          <i class="flow-chevron" aria-hidden="true"></i>
+          <article class="evidence-stage" style="--stage-color: var(--amber)">
+            <div class="stage-no">04  分摊交互</div>
+            <h2>贡献计量</h2>
+            <div class="stage-core">精确Shapley<br>保留正负边际贡献</div>
+            <div class="stage-output">输出  φᵢ与可加性核验</div>
+          </article>
+          <i class="flow-chevron" aria-hidden="true"></i>
+          <article class="evidence-stage" style="--stage-color: var(--coral)">
+            <div class="stage-no">05  进入治理</div>
+            <h2>评审终裁</h2>
+            <div class="stage-core">6:4合成建议<br>委员会独立确认</div>
+            <div class="stage-output">输出  人工确认方案</div>
+          </article>
+        </div>
+
+        <div class="audit-track">
+          <div class="track-label">全链路审计记录</div>
+          <div class="track-items">
+            <span>数据版本</span><span>因子配置</span><span>联盟结果</span><span>Shapley贡献</span><span>合成建议</span><span>人工确认</span>
+          </div>
+          <div class="track-boundary">Agent生成结构化建议<br>确定性引擎计算金融事实</div>
+        </div>
+
+        <div class="slide-footer"><strong>AlphaSplit · 投研协作激励与贡献计量平台</strong><span>决赛路演内容原型</span></div>
+        <template class="speaker-note">这条链路从岗位职责和客户偏好开始。我们先定义行业、个股、策略、量化、风控五类角色，再把角色决策映射为40项可确认输入。随后固定数据、基准、成本和调仓规则，对32个角色联盟执行控制变量回测，用精确Shapley分摊正负边际贡献。贡献证据进入6:4双轨建议，最终由评审委员会独立确认。每一步都有输入、输出和审计记录。</template>
+      </section>
+
+      <section class="slide" data-page="08" data-time="35秒">
+        <div class="eyebrow"><span class="page">08</span><span>系统架构</span></div>
+        <h1>AlphaSplit系统架构：<span class="accent">智能交互、确定性计算与人工治理</span></h1>
+        <p class="subtitle">四层能力按职责解耦，审计能力纵向贯穿，业务流程横向闭环</p>
+
+        <div class="architecture-board">
+          <aside class="arch-side" aria-label="产品定位与设计原则">
+            <section class="side-block" style="--side-color:var(--blue)">
+              <h2>产品定位</h2>
+              <p>以分配机制调动投研角色参与积极性，形成<strong>可解释贡献证据</strong></p>
+            </section>
+            <section class="side-block" style="--side-color:var(--cyan)">
+              <h2>设计原则</h2>
+              <p><strong>语义交互</strong>与金融计算分离<br><strong>建议生成</strong>与治理决策分离<br><strong>历史证据</strong>与收益承诺分离</p>
+            </section>
+            <section class="side-block" style="--side-color:var(--coral)">
+              <h2>可信边界</h2>
+              <p>LLM不生成收益、风险和贡献，不改写回测结果</p>
+            </section>
+          </aside>
+
+          <div class="arch-center" aria-label="四层系统架构">
+            <section class="arch-cap">
+              <strong>服务入口</strong>
+              <div class="cap-items"><span>客户偏好</span><span>配置确认</span><span>证据核验</span><span>评审工作台</span></div>
+            </section>
+            <section class="arch-layer" style="--layer-bg:#14558a">
+              <div class="layer-name"><em>L4  APPLICATION</em><strong>交互与治理层</strong></div>
+              <div class="layer-items"><span>自助配置</span><span>结果展示</span><span>角色陈述参考</span><span>委员会终裁</span></div>
+            </section>
+            <section class="arch-layer" style="--layer-bg:#17638c">
+              <div class="layer-name"><em>L3  AGENT</em><strong>Agent编排层</strong></div>
+              <div class="layer-items"><span>DeepSeek或离线缓存</span><span>因子白名单</span><span>参数校验与规则降级</span><span>证据约束解读</span></div>
+            </section>
+            <section class="arch-layer core" style="--layer-bg:#08758e">
+              <div class="layer-name"><em>L2  DETERMINISTIC CORE</em><strong>金融计算层</strong></div>
+              <div class="layer-items"><span>角色决策代理<br>40项因子输入</span><span>组合构建<br>月度调仓与交易成本</span><span>反事实实验<br>32个角色联盟</span><span>贡献计量<br>精确Shapley</span><span>证据池规则<br>正贡献与50%上限</span><span>数学核验<br>收益恒等式与可加性</span></div>
+            </section>
+            <section class="arch-layer" style="--layer-bg:#143f68">
+              <div class="layer-name"><em>L1  DATA</em><strong>数据与审计层</strong></div>
+              <div class="layer-items"><span>HS300行情</span><span>行业映射</span><span>公开因子</span><span>缓存与版本</span><span>诊断与日志</span></div>
+            </section>
+          </div>
+
+          <aside class="trust-spine" aria-label="贯穿四层的可信治理能力">
+            <h2>全链路<br>可信治理</h2>
+            <div class="trust-list"><span>输入留痕</span><span>版本可查</span><span>参数可验</span><span>结果可复算</span><span>人工可调整</span><span>决定可追责</span></div>
+          </aside>
+        </div>
+
+        <div class="architecture-flow">
+          <strong>业务闭环</strong>
+          <div class="business-chain"><span>表达偏好</span><i></i><span>确认配置</span><i></i><span>32联盟回测</span><i></i><span>Shapley证据</span><i></i><span>6:4合成建议</span><i></i><span>评审终裁</span></div>
+        </div>
+        <div class="slide-footer"><strong>AlphaSplit · 投研协作激励与贡献计量平台</strong><span>决赛路演内容原型</span></div>
+        <template class="speaker-note">架构中部是四层技术能力。数据层固定HS300行情、行业映射、因子版本和运行日志；确定性金融计算层完成40项因子输入、组合构建、交易成本、32个联盟回测和精确Shapley；Agent层只负责自然语言到结构化建议，并经过白名单、参数校验和规则降级；交互与治理层负责确认、展示和评审终裁。右侧是贯穿四层的可信治理能力，底部是完整业务闭环。关键边界是，LLM不能生成或改写金融事实。</template>
+      </section>
+
+      <section class="slide" data-page="13" data-time="25秒">
+        <div class="eyebrow"><span class="page">13</span><span>核心技术 · 治理机制</span></div>
+        <h1>6:4双轨让贡献证据进入治理，<span class="accent">但不替代治理</span></h1>
+        <p class="subtitle">保留机构制度连续性，用可复算证据进行渐进校正，最终由评审委员会独立确认</p>
+
+        <div class="governance-flow" aria-label="双轨治理逻辑链">
+          <div class="track-stack">
+            <section class="governance-track" style="--track-color:var(--amber)">
+              <div class="ratio">60%</div><h2>制度轨</h2><p>读取机构现行分配<br>保留制度和历史连续性</p>
+            </section>
+            <section class="governance-track" style="--track-color:var(--cyan)">
+              <div class="ratio">40%</div><h2>证据轨</h2><p>正向Shapley形成权重<br>负贡献保留用于复盘</p>
+            </section>
+          </div>
+          <div class="merge-arrow"><span></span></div>
+          <section class="formula-stage">
+            <div class="formula-label">双轨合成建议</div>
+            <div class="formula">建议份额ᵢ<br>= 60% × 现行份额ᵢ<br>+ 40% × 证据池份额ᵢ</div>
+            <div class="rule">证据池只校正40%份额<br>不直接推翻既有制度</div>
+          </section>
+          <div class="decision-arrow"><span></span></div>
+          <div class="decision-chain">
+            <section class="decision-node" style="--node-color:var(--blue)"><div class="node-no">01</div><div><strong>系统展示建议</strong><small>制度轨、证据轨与合成结果同屏核验</small></div></section>
+            <section class="decision-node" style="--node-color:var(--amber)"><div class="node-no">02</div><div><strong>角色陈述参考</strong><small>说明贡献依据，不进入份额计算</small></div></section>
+            <section class="decision-node" style="--node-color:var(--green)"><div class="node-no">03</div><div><strong>评审委员会终裁</strong><small>独立判断、调整并确认后方可应用</small></div></section>
+          </div>
+        </div>
+
+        <div class="governance-proof">
+          <div class="proof-image"><img src="assets/dual-track-ui.png" alt="AlphaSplit系统中的6比4双轨分配表"><div><strong>产品界面已落地</strong><span>旧池、证据池和合成建议可以同屏核验</span></div></div>
+          <div class="advisory"><strong>角色陈述不改变系统建议</strong><span>陈述仅为评审委员会补充组织背景和复盘信息</span></div>
+          <div class="applications"><strong>适用于广义价值分配</strong><span>预算、研究资源、项目机会、数据与算力额度</span></div>
+        </div>
+        <div class="slide-footer"><strong>适用于预算、研究资源、项目机会、数据与算力额度等广义价值分配</strong><span>系统不自动执行资源划拨</span></div>
+        <template class="speaker-note">治理链从两类输入开始。制度轨保留机构现行分配，占60%；证据轨用正向Shapley形成动态权重，占40%，负贡献继续保留用于复盘。系统按公式生成合成建议，并同屏展示两轨来源。五类角色可以陈述贡献依据，但陈述不进入份额计算。最终由评审委员会独立判断、调整并确认，确认后才能用于预算、研究资源、项目机会以及数据和算力等广义价值分配。</template>
+      </section>
+    </div>
+  </main>
+
+  <nav class="controls" aria-label="幻灯片导航">
+    <button type="button" id="prev" aria-label="上一页" title="上一页">‹</button>
+    <span class="counter" id="counter">1 / 3</span>
+    <button type="button" id="next" aria-label="下一页" title="下一页">›</button>
+    <button type="button" id="notesToggle" class="notes-toggle" aria-label="显示讲稿">讲稿</button>
+  </nav>
+
+  <aside class="notes-panel" id="notesPanel" aria-live="polite">
+    <h2 id="notesTitle">第07页讲稿</h2>
+    <p id="notesText"></p>
+    <div class="timing" id="notesTiming"></div>
+  </aside>
+
+  <script>
+    const slides = [...document.querySelectorAll('.slide')];
+    const deck = document.getElementById('deck');
+    const counter = document.getElementById('counter');
+    const notesPanel = document.getElementById('notesPanel');
+    const notesTitle = document.getElementById('notesTitle');
+    const notesText = document.getElementById('notesText');
+    const notesTiming = document.getElementById('notesTiming');
+    let current = 0;
+
+    function fitDeck() {
+      const availableWidth = window.innerWidth - 24;
+      const availableHeight = window.innerHeight - 82;
+      const scale = Math.min(availableWidth / 1600, availableHeight / 900);
+      deck.style.transform = `scale(${Math.max(scale, 0.1)})`;
+    }
+
+    function showSlide(index) {
+      current = (index + slides.length) % slides.length;
+      slides.forEach((slide, i) => slide.classList.toggle('active', i === current));
+      counter.textContent = `${current + 1} / ${slides.length}`;
+      const slide = slides[current];
+      notesTitle.textContent = `第${slide.dataset.page}页讲稿`;
+      notesText.textContent = slide.querySelector('.speaker-note').content.textContent.trim();
+      notesTiming.textContent = `建议讲解时长：${slide.dataset.time}`;
+    }
+
+    document.getElementById('prev').addEventListener('click', () => showSlide(current - 1));
+    document.getElementById('next').addEventListener('click', () => showSlide(current + 1));
+    document.getElementById('notesToggle').addEventListener('click', () => notesPanel.classList.toggle('open'));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === 'PageDown' || event.key === ' ') showSlide(current + 1);
+      if (event.key === 'ArrowLeft' || event.key === 'PageUp') showSlide(current - 1);
+      if (event.key.toLowerCase() === 'n') notesPanel.classList.toggle('open');
+      if (event.key === 'Escape') notesPanel.classList.remove('open');
+    });
+    window.addEventListener('resize', fitDeck);
+    fitDeck();
+    showSlide(0);
+  </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+services:
+  alphasplit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: alphasplit:latest
+    container_name: alphasplit
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${ALPHASPLIT_HOST_PORT:-8766}:8000"
+    environment:
+      ALPHASPLIT_PUBLIC_DEMO_ONLY: "${ALPHASPLIT_PUBLIC_DEMO_ONLY:-1}"
+      ALPHASPLIT_API_TOKEN: "${ALPHASPLIT_API_TOKEN:-}"
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:-}"
+      AGENT_LAYER_LLM_TIMEOUT: "${AGENT_LAYER_LLM_TIMEOUT:-60}"
+      AGENT_LAYER_LLM_MAX_RETRIES: "${AGENT_LAYER_LLM_MAX_RETRIES:-1}"
+    volumes:
+      - ./backtest/results:/app/backtest/results
+      - ./backtest/reports:/app/backtest/reports
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s

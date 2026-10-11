@@ -8,7 +8,14 @@ import unittest
 import urllib.error
 from unittest.mock import patch
 
-from agent_layer.impl.llm import LLMProviderError, call_llm, get_last_llm_call
+from agent_layer.impl.llm import (
+    LLMProviderError,
+    call_llm,
+    clear_runtime_api_key,
+    configure_runtime_api_key,
+    get_last_llm_call,
+    llm_status,
+)
 
 
 def _success(content: str = '{"ok":true}') -> bytes:
@@ -36,6 +43,9 @@ def _http_error(code: int, body: bytes = b"error") -> urllib.error.HTTPError:
 
 
 class TestLLMProvider(unittest.TestCase):
+    def tearDown(self):
+        clear_runtime_api_key()
+
     def _env(self, **overrides):
         values = {
             "DEEPSEEK_API_KEY": "test-secret-never-return",
@@ -59,6 +69,25 @@ class TestLLMProvider(unittest.TestCase):
         metadata = get_last_llm_call()
         self.assertEqual(metadata["status"], "success")
         self.assertEqual(metadata["attempts"], 2)
+
+    def test_runtime_key_takes_precedence_and_can_be_cleared(self):
+        with self._env(DEEPSEEK_API_KEY="environment-secret"):
+            configured = configure_runtime_api_key("runtime-secret-value")
+            self.assertTrue(configured["available"])
+            self.assertEqual(configured["provider"], "deepseek")
+            self.assertEqual(configured["credential_source"], "runtime")
+            self.assertNotIn("runtime-secret-value", json.dumps(configured))
+
+            cleared = clear_runtime_api_key()
+            self.assertEqual(cleared["credential_source"], "environment")
+            self.assertNotIn("environment-secret", json.dumps(cleared))
+
+    def test_no_key_status_is_public_and_secret_free(self):
+        with patch.dict(os.environ, {}, clear=True):
+            clear_runtime_api_key()
+            status = llm_status()
+        self.assertFalse(status["available"])
+        self.assertEqual(status["credential_source"], "none")
 
     def test_json_schema_rejection_falls_back_to_json_object(self):
         error = _http_error(400, b"response_format json_schema unsupported")

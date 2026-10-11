@@ -18,6 +18,7 @@ from agent_layer.impl.llm import (
     llm_status,
     reset_llm_call_metadata,
 )
+from agent_layer.impl.offline_cache import find_cached_factor_response
 from backtest.factor_config import (
     FACTOR_DESCRIPTIONS,
     FACTOR_DIRECTIONS,
@@ -55,6 +56,8 @@ def _attach_audit(
     source = str(proposal.get("source") or "unknown")
     if source == "deepseek":
         interpretation_status = "success"
+    elif source == "agent_cache":
+        interpretation_status = "cached"
     elif source == "rule_fallback":
         interpretation_status = "fallback"
     else:
@@ -294,6 +297,27 @@ def propose_with_factor_agent(
     status = llm_status()
     reset_llm_call_metadata()
 
+    def cached_proposal() -> dict[str, Any] | None:
+        entry = find_cached_factor_response(quick_preferences)
+        if not entry:
+            return None
+        proposal = _apply_model_proposal(entry["response"], current)
+        proposal.update({
+            "mode": "offline",
+            "source": "agent_cache",
+            "model": None,
+            "fallback_reason": None,
+            "cache": {
+                "id": entry["id"],
+                "kind": "bundled_reviewed_response",
+                "live_llm_used": False,
+            },
+        })
+        result = _attach_audit(proposal, current, requested_mode=mode)
+        result["audit"]["input_summary"]["message_count"] = len(messages or []) + 1
+        result["audit"]["cache"] = result["cache"]
+        return result
+
     if mode != "llm":
         proposal = propose_factor_config(user_text, current)
         proposal.update({"mode": "mock", "source": "rule", "model": None, "fallback_reason": None})
@@ -302,6 +326,9 @@ def propose_with_factor_agent(
         return result
 
     if not llm_available():
+        cached = cached_proposal()
+        if cached:
+            return cached
         proposal = propose_factor_config(user_text, current)
         proposal.update({
             "mode": "mock",
@@ -337,6 +364,11 @@ def propose_with_factor_agent(
         return result
     except Exception as exc:
         llm_call = get_last_llm_call()
+        cached = cached_proposal()
+        if cached:
+            cached["audit"]["llm_call"] = llm_call
+            cached["audit"]["live_failure"] = _safe_failure_reason(exc)
+            return cached
         proposal = propose_factor_config(user_text, current)
         proposal.update({
             "mode": "mock",

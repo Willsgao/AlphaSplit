@@ -22,7 +22,7 @@ RESULTS_DIR = BACKTEST_DIR / "results"
 CACHE_DIR = RESULTS_DIR / "_cache"
 DEMO_STATIC = ROOT / "engine" / "web" / "demo" / "backtest_demo.json"
 DEMO_STATIC_URL = "/static/demo/backtest_demo.json"
-BACKTEST_ENGINE_VERSION = "portfolio-v7-20260827"
+CACHE_SCHEMA_VERSION = 1
 
 _ENGINE: Any | None = None
 
@@ -108,7 +108,7 @@ def cache_key_from_query(query: dict[str, Any]) -> str:
         if key in factor_config
     }
     payload = {
-        "engine_version": BACKTEST_ENGINE_VERSION,
+        "cache_schema": CACHE_SCHEMA_VERSION,
         "start": tr.get("start_date") or "",
         "end": tr.get("end_date") or "",
         "industry": (query.get("industry") or "").strip(),

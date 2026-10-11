@@ -38,7 +38,7 @@ def main():
         # 人工确认（路演 UI 隐藏顶栏 Tab，用步进器切换）
         page.evaluate("switchToTab('negotiate')")
         page.wait_for_timeout(500)
-        # 注入演示回测结果，供双轨表与五角色协商截图
+        # 注入演示回测结果，供双轨表与评审决策截图
         page.evaluate("""
             async () => {
               const r = await fetch('/api/backtest/demo');
