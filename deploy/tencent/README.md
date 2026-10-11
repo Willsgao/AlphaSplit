@@ -50,7 +50,7 @@ git -c http.version=HTTP/1.1 clone --depth 1 --filter=blob:none --no-checkout \
   https://github.com/Willsgao/AlphaSplit.git /data/AlphaSplit
 cd /data/AlphaSplit
 git sparse-checkout init --no-cone
-git sparse-checkout set '/Dockerfile' '/compose.yaml' '/requirements-lock.txt' \
+git sparse-checkout set '/.dockerignore' '/Dockerfile' '/compose.yaml' '/requirements-lock.txt' \
   '/agent_layer/' '/backtest/' '/engine/' '/deploy/' '/data/scenarios/'
 git checkout main
 cp deploy/tencent/alphasplit.env.example .env
