@@ -31,11 +31,29 @@ docker compose version
 
 ```bash
 cd /data
-git clone https://github.com/Willsgao/AlphaSplit.git
+git -c http.version=HTTP/1.1 clone --depth 1 --single-branch --branch main \
+  https://github.com/Willsgao/AlphaSplit.git AlphaSplit
 cd AlphaSplit
 cp deploy/tencent/alphasplit.env.example .env
 chmod 600 .env
 bash deploy/tencent/install.sh
+```
+
+项目包含用于离线演示的行情数据，腾讯云到 GitHub 的链路偶尔会在下载中断开。
+出现 `RPC failed`、`early EOF` 或 `Connection timed out` 时，确认失败目录不存在后，
+使用只检出运行所需目录的方式重试：
+
+```bash
+cd /data
+rm -rf /data/AlphaSplit.partial
+git -c http.version=HTTP/1.1 clone --depth 1 --filter=blob:none --no-checkout \
+  https://github.com/Willsgao/AlphaSplit.git /data/AlphaSplit.partial
+cd /data/AlphaSplit.partial
+git sparse-checkout init --cone
+git sparse-checkout set agent_layer backtest data engine deploy
+git checkout main
+mv /data/AlphaSplit.partial /data/AlphaSplit
+cd /data/AlphaSplit
 ```
 
 完成后访问：
